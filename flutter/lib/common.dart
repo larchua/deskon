@@ -2753,10 +2753,10 @@ class ServerConfig {
 
   ServerConfig(
       {String? idServer, String? relayServer, String? apiServer, String? key}) {
-    this.idServer = idServer?.trim() ?? '';
-    this.relayServer = relayServer?.trim() ?? '';
-    this.apiServer = apiServer?.trim() ?? '';
-    this.key = key?.trim() ?? '';
+    this.idServer = idServer?.trim() ?? '47.109.178.85';
+    this.relayServer = relayServer?.trim() ?? '47.109.178.85';
+    this.apiServer = apiServer?.trim() ?? 'https://47.109.178.85';
+    this.key = key?.trim() ?? '+J8Zh3DU5haBGQcrUnbWsjWYi7d0yhCGqYy6581EgO8=';
   }
 
   /// decode from shared string (from user shared or rustdesk-server generated)
@@ -2794,10 +2794,10 @@ class ServerConfig {
 
   /// from local options
   ServerConfig.fromOptions(Map<String, dynamic> options)
-      : idServer = options['custom-rendezvous-server'] ?? "",
-        relayServer = options['relay-server'] ?? "",
-        apiServer = options['api-server'] ?? "",
-        key = options['key'] ?? "";
+      : idServer = options['custom-rendezvous-server'] ?? "47.109.178.85",
+        relayServer = options['relay-server'] ?? "47.109.178.85",
+        apiServer = options['api-server'] ?? "https://47.109.178.85",
+        key = options['key'] ?? "+J8Zh3DU5haBGQcrUnbWsjWYi7d0yhCGqYy6581EgO8=";
 }
 
 Widget dialogButton(String text,

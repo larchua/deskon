@@ -1543,10 +1543,18 @@ pub fn load_custom_client() {
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
+        // 初始化默认网络配置
+        config::init_default_network_config();
+        // 初始化默认内置设置
+        config::init_default_builtin_settings();
         return;
     }
     let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
     else {
+        // 即使没有自定义配置文件，也要初始化默认网络配置
+        config::init_default_network_config();
+        // 初始化默认内置设置
+        config::init_default_builtin_settings();
         return;
     };
     #[cfg(target_os = "macos")]
@@ -1555,10 +1563,19 @@ pub fn load_custom_client() {
     if path.is_file() {
         let Ok(data) = std::fs::read_to_string(&path) else {
             log::error!("Failed to read custom client config");
+            // 初始化默认网络配置
+            config::init_default_network_config();
+            // 初始化默认内置设置
+            config::init_default_builtin_settings();
             return;
         };
         read_custom_client(&data.trim());
     }
+    
+    // 初始化默认网络配置
+    config::init_default_network_config();
+    // 初始化默认内置设置
+    config::init_default_builtin_settings();
 }
 
 fn read_custom_client_advanced_settings(
