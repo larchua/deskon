@@ -1,5 +1,3 @@
-use libdeskon::*;
-
 #[cfg(not(target_os = "macos"))]
 fn main() {}
 
