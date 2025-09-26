@@ -166,7 +166,7 @@ flutter build windows
 4) 运行构建好的应用：
 
 ```powershell
-.\build\windows\x64\runner\Release\rustdesk.exe
+.\build\windows\x64\runner\Release\deskon.exe
 ```
 
 ### 调试运行（可选）
@@ -181,7 +181,7 @@ flutter run -d windows
 
 ### 产物路径
 
-构建成功后，可执行文件位于：`D:\MyProject\Deskon\rustdesk\flutter\build\windows\x64\runner\Release\rustdesk.exe`
+构建成功后，可执行文件位于：`D:\MyProject\Deskon\deskon\flutter\build\windows\x64\runner\Release\deskon.exe`
 
 ---
 
@@ -287,7 +287,7 @@ flutter clean
 ```powershell
 # 推荐：先构建再运行
 flutter build windows
-.\build\windows\x64\runner\Release\rustdesk.exe
+.\build\windows\x64\runner\Release\deskon.exe
 
 # 而不是直接运行（可能失败）
 # flutter run -d windows

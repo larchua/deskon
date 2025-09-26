@@ -299,7 +299,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Failed to turn off", "Uitschakelen mislukt"),
         ("Turned off", "Uitgeschakeld"),
         ("Language", "Taal"),
-        ("Keep RustDesk background service", "RustDesk achtergronddienst behouden"),
+        ("Keep Deskon background service", "Deskon achtergronddienst behouden"),
         ("Ignore Battery Optimizations", "Negeer Batterij-optimalisaties"),
         ("android_open_battery_optimizations_tip", "Ga naar de volgende pagina met instellingen"),
         ("Start on boot", "Starten bij Opstarten"),

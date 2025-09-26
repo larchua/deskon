@@ -299,7 +299,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Failed to turn off", "Error al apagar"),
         ("Turned off", "Apagado"),
         ("Language", "Idioma"),
-        ("Keep RustDesk background service", "Dejar RustDesk como Servicio en 2do plano"),
+        ("Keep Deskon background service", "Dejar Deskon como Servicio en 2do plano"),
         ("Ignore Battery Optimizations", "Ignorar optimizacioens de bateria"),
         ("android_open_battery_optimizations_tip", "Si deseas deshabilitar esta característica, por favor, ve a la página siguiente de ajustes, busca y entra en  [Batería] y desmarca [Sin restricción]"),
         ("Start on boot", ""),

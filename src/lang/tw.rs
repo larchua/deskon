@@ -299,7 +299,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Failed to turn off", "關閉失敗"),
         ("Turned off", "已關閉"),
         ("Language", "語言"),
-        ("Keep RustDesk background service", "保持 RustDesk 後台服務"),
+        ("Keep Deskon background service", "保持 Deskon 後台服務"),
         ("Ignore Battery Optimizations", "忽略電池最佳化"),
         ("android_open_battery_optimizations_tip", "如果您想要停用此功能，請前往下一個 RustDesk 應用程式設定頁面，找到並進入「電池」，取消勾選「不受限制」"),
         ("Start on boot", "開機時啟動"),

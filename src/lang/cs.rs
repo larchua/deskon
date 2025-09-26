@@ -299,7 +299,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Failed to turn off", "Nepodařilo se vypnout"),
         ("Turned off", "Vypnutý"),
         ("Language", "Jazyk"),
-        ("Keep RustDesk background service", "Zachovat službu RustDesk na pozadí"),
+        ("Keep Deskon background service", "Zachovat službu Deskon na pozadí"),
         ("Ignore Battery Optimizations", "Ignorovat optimalizaci baterie"),
         ("android_open_battery_optimizations_tip", "Pokud chcete tuto funkci zakázat, přejděte na další stránku nastavení aplikace RustDesk, najděte a zadejte [Baterie], zrušte zaškrtnutí [Neomezeno]."),
         ("Start on boot", "Spustit při startu systému"),

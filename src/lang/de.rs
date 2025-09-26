@@ -299,7 +299,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Failed to turn off", "Ausschalten fehlgeschlagen"),
         ("Turned off", "Ausgeschaltet"),
         ("Language", "Sprache"),
-        ("Keep RustDesk background service", "RustDesk im Hintergrund ausführen"),
+        ("Keep Deskon background service", "Deskon im Hintergrund ausführen"),
         ("Ignore Battery Optimizations", "Akkuoptimierung ignorieren"),
         ("android_open_battery_optimizations_tip", "Möchten Sie die Einstellungen zur Akkuoptimierung öffnen?"),
         ("Start on boot", "Beim Booten starten"),
