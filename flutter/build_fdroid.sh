@@ -328,7 +328,7 @@ prebuild)
 
 		sed \
 			-i \
-			-e 's/extended_text: 14.0.0/extended_text: 13.0.0/g' \
+			-e 's/extended_text: 15.0.2/extended_text: 13.0.0/g' \
 			flutter/pubspec.yaml
 
 		# Download Flutter dependencies
