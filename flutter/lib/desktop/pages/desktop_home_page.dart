@@ -24,9 +24,35 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart' as window_size;
 import '../widgets/button.dart';
+import '../../common/shared_state.dart';
+import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
+import '../../common/widgets/login.dart';
+import '../../common/widgets/dialog.dart';
+import 'package:flutter_hbb/models/user_model.dart';
 
 class DesktopHomePage extends StatefulWidget {
   const DesktopHomePage({Key? key}) : super(key: key);
+
+  static void switchToSettings(SettingsTabKey tab) {
+    try {
+      HomeSelectedMenuState.init();
+      HomeInitialSettingsTabState.init();
+      final idx = DesktopSettingPage.tabKeys.indexOf(tab);
+      if (idx >= 0) {
+        final tabRx = HomeInitialSettingsTabState.find();
+        tabRx.value = idx;
+        tabRx.refresh();
+      }
+      final menuRx = HomeSelectedMenuState.find();
+      menuRx.value = 2; // 切换到“系统设置”主菜单
+      menuRx.refresh();
+      final DesktopTabController controller = Get.find<DesktopTabController>();
+      controller.jumpToByKey(kTabLabelHomePage); // 显示主页（三段式布局）
+    } catch (e) {
+      // 兜底：如果没有主页标签控制器，至少打开设置页
+      DesktopSettingPage.switch2page(tab);
+    }
+  }
 
   @override
   State<DesktopHomePage> createState() => _DesktopHomePageState();
@@ -37,6 +63,8 @@ const borderColor = Color(0xFF2F65BA);
 class _DesktopHomePageState extends State<DesktopHomePage>
     with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   final _leftPaneScrollController = ScrollController();
+  StreamSubscription<int>? _menuSub;
+  StreamSubscription<int>? _settingsTabSub;
 
   @override
   bool get wantKeepAlive => true;
@@ -49,6 +77,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   var watchIsCanRecordAudio = false;
   Timer? _updateTimer;
   bool isCardClosed = false;
+  int _selectedMenu = 0; // 0: 远程控制；1: 设备管理
+  SettingsTabKey? _initialSettingsTab;
 
   final RxBool _editHover = false.obs;
   final RxBool _block = false.obs;
@@ -77,104 +107,285 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
   Widget buildLeftPane(BuildContext context) {
     final isIncomingOnly = bind.isIncomingOnly();
-    final isOutgoingOnly = bind.isOutgoingOnly();
-    final children = <Widget>[
-      if (!isOutgoingOnly) buildPresetPasswordWarning(),
-      if (bind.isCustomClient())
-        Align(
-          alignment: Alignment.center,
-          child: loadPowered(context),
-        ),
-      Align(
-        alignment: Alignment.center,
-        child: loadLogo(),
-      ),
-      buildTip(context),
-      if (!isOutgoingOnly) buildIDBoard(context),
-      if (!isOutgoingOnly) buildPasswordBoard(context),
-      FutureBuilder<Widget>(
-        future: Future.value(
-            Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
-        builder: (_, data) {
-          if (data.hasData) {
-            if (isIncomingOnly) {
-              if (isInHomePage()) {
-                Future.delayed(Duration(milliseconds: 300), () {
-                  _updateWindowSize();
-                });
-              }
-            }
-            return data.data!;
-          } else {
-            return const Offstage();
-          }
-        },
-      ),
-      buildPluginEntry(),
-    ];
-    if (isIncomingOnly) {
-      children.addAll([
-        Divider(),
-        OnlineStatusWidget(
-          onSvcStatusChanged: () {
-            if (isInHomePage()) {
-              Future.delayed(Duration(milliseconds: 300), () {
-                _updateWindowSize();
-              });
-            }
-          },
-        ).marginOnly(bottom: 6, right: 6)
-      ]);
-    }
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
-    return ChangeNotifierProvider.value(
-      value: gFFI.serverModel,
-      child: Container(
-        width: isIncomingOnly ? 280.0 : 200.0,
-        color: Theme.of(context).colorScheme.background,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                SingleChildScrollView(
-                  controller: _leftPaneScrollController,
-                  child: Column(
-                    key: _childKey,
-                    children: children,
-                  ),
-                ),
-                Expanded(child: Container())
-              ],
-            ),
-            if (isOutgoingOnly)
-              Positioned(
-                bottom: 6,
-                left: 12,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: InkWell(
-                    child: Obx(
-                      () => Icon(
-                        Icons.settings,
-                        color: _editHover.value
-                            ? textColor
-                            : Colors.grey.withOpacity(0.5),
-                        size: 22,
+    final primary = Theme.of(context).colorScheme.primary;
+
+    Widget buildUserCenter() {
+      return Obx(() {
+        final userModel = gFFI.userModel;
+        final isLogin = userModel.isLogin;
+        final name = userModel.userName.value;
+        final userInfo = UserModel.getLocalUserInfo();
+        final email = userInfo?['email'] ?? '';
+        final isAdmin = userModel.isAdmin.value;
+        final membership = isAdmin ? '管理员' : '普通会员';
+        final avatarColor = name.isNotEmpty
+            ? str2color(name, 0xAF)
+            : Theme.of(context).dividerColor.withOpacity(0.3);
+        final avatarText = name.isNotEmpty ? name.characters.first.toUpperCase() : '';
+        return Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: primary.withOpacity(0.12)),
+          ),
+          child: isLogin
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: avatarColor,
+                      child: name.isNotEmpty
+                          ? Text(
+                              avatarText,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600),
+                            )
+                          : Icon(Icons.person,
+                              size: 20,
+                              color: textColor?.withOpacity(0.65)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '账号：${email.isNotEmpty ? email : name}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: textColor?.withOpacity(0.75)),
+                          ),
+                          Text(
+                            '会员：$membership',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: textColor?.withOpacity(0.75)),
+                          ),
+                        ],
                       ),
                     ),
-                    onTap: () => {
-                      if (DesktopSettingPage.tabKeys.isNotEmpty)
-                        {
-                          DesktopSettingPage.switch2page(
-                              DesktopSettingPage.tabKeys[0])
-                        }
-                    },
-                    onHover: (value) => _editHover.value = value,
+                  ],
+                )
+              : Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.18),
+                      child: Icon(Icons.person,
+                          size: 20,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.85)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                await loginDialog();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(0, 32),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                              ),
+                              child: Text(
+                                translate('Login'),
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.visible,
+                                style: TextStyle(
+                                  fontSize: (Theme.of(context).textTheme.labelLarge?.fontSize ?? 14) * 0.8,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                gFFI.dialogManager.show((setState, close, ctx) {
+                                  return CustomAlertDialog(
+                                    title: const Text('注册'),
+                                    content: const Text('注册功能开发中，敬请期待'),
+                                    actions: [
+                                      dialogButton('关闭', onPressed: close),
+                                    ],
+                                    onCancel: close,
+                                  );
+                                });
+                              },
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 32),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                              ),
+                              child: Text(
+                                '注册',
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.visible,
+                                style: TextStyle(
+                                  fontSize: (Theme.of(context).textTheme.labelLarge?.fontSize ?? 14) * 0.8,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+        );
+      });
+    }
+
+    Widget buildMenuItem(
+        {required IconData icon, required String label, required int index}) {
+      final selected = _selectedMenu == index;
+      return InkWell(
+        onTap: () {
+          // 使用全局状态作为唯一真源，确保后续外部导航能再次触发
+          HomeSelectedMenuState.init();
+          HomeInitialSettingsTabState.init();
+          final menuRx = HomeSelectedMenuState.find();
+          menuRx.value = index;
+          menuRx.refresh();
+          if (index == 2) {
+            final tabIndex =
+                DesktopSettingPage.tabKeys.indexOf(SettingsTabKey.general);
+            final tabRx = HomeInitialSettingsTabState.find();
+            tabRx.value = tabIndex;
+            tabRx.refresh();
+          }
+        },
+        hoverColor: primary.withOpacity(0.06),
+        focusColor: primary.withOpacity(0.08),
+        highlightColor: primary.withOpacity(0.10),
+        splashColor: primary.withOpacity(0.08),
+        child: Container(
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? primary.withOpacity(0.12) : null,
+            borderRadius: BorderRadius.circular(8),
+            border: selected
+                ? Border.all(color: primary.withOpacity(0.35))
+                : null,
+          ),
+          child: Row(
+            children: [
+              Icon(icon,
+                  size: 18,
+                  color: selected ? primary : textColor?.withOpacity(0.65)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  translate(label),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: selected ? primary : textColor?.withOpacity(0.9),
+                    fontWeight:
+                        selected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
-              )
-          ],
+              ),
+            ],
+          ),
         ),
+      );
+    }
+
+    return Container(
+      width: isIncomingOnly ? 280.0 : 200.0,
+      color: Theme.of(context).colorScheme.background,
+      child: Column(
+        children: [
+          const SizedBox(height: 14),
+          buildUserCenter(),
+          const SizedBox(height: 8),
+          buildMenuItem(
+              icon: Icons.desktop_windows, label: 'Remote Control', index: 0),
+          buildMenuItem(
+              icon: Icons.devices, label: 'Device Management', index: 1),
+          buildMenuItem(
+              icon: Icons.settings, label: 'System Settings', index: 2),
+          const Spacer(),
+          // 底部品牌区：Logo + 产品名 + 版本号
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 8, 8, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                loadIcon(70),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FittedBox(
+                        alignment: Alignment.centerLeft,
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'DeskON',
+                          style: TextStyle(
+                            fontSize: 32, // 字体加倍
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
+                      ),
+                      if (version.isNotEmpty)
+                        Text(
+                          'v$version',
+                          style: TextStyle(
+                            fontSize: 12, // 较小字号
+                            color: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.color
+                                ?.withOpacity(0.65),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -182,7 +393,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   buildRightPane(BuildContext context) {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
-      child: ConnectionPage(),
+      child: _selectedMenu == 2
+          ? DesktopSettingPage(
+              initialTabkey: _initialSettingsTab ?? SettingsTabKey.general)
+          : ConnectionPage(mode: _selectedMenu == 0 ? 0 : 1),
     );
   }
 
@@ -258,7 +472,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final textColor = Theme.of(context).textTheme.titleLarge?.color;
     RxBool hover = false.obs;
     return InkWell(
-      onTap: DesktopTabPage.onAddSetting,
+      onTap: () => DesktopHomePage.switchToSettings(SettingsTabKey.general),
       child: Tooltip(
         message: translate('Settings'),
         child: Obx(
@@ -372,8 +586,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                               ).marginOnly(right: 8, top: 4),
                             ),
                           ),
-                          onTap: () => DesktopSettingPage.switch2page(
-                              SettingsTabKey.safety),
+                          onTap: () {
+                            DesktopHomePage.switchToSettings(
+                                SettingsTabKey.safety);
+                          },
                           onHover: (value) => editHover.value = value,
                         ),
                     ],
@@ -692,6 +908,23 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   @override
   void initState() {
     super.initState();
+    // 监听共享状态，支持外部导航到三段式设置
+    HomeSelectedMenuState.init();
+    HomeInitialSettingsTabState.init();
+    _menuSub = HomeSelectedMenuState.find().listen((idx) {
+      if (!mounted) return;
+      setState(() {
+        _selectedMenu = idx;
+      });
+    });
+    _settingsTabSub = HomeInitialSettingsTabState.find().listen((tabIndex) {
+      if (!mounted) return;
+      if (tabIndex >= 0 && tabIndex < DesktopSettingPage.tabKeys.length) {
+        setState(() {
+          _initialSettingsTab = DesktopSettingPage.tabKeys[tabIndex];
+        });
+      }
+    });
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
@@ -855,6 +1088,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
   @override
   void dispose() {
+    _menuSub?.cancel();
+    _settingsTabSub?.cancel();
     _uniLinksSubscription?.cancel();
     Get.delete<RxBool>(tag: 'stop-service');
     _updateTimer?.cancel();
