@@ -1,6 +1,6 @@
 [package]
 name = "deskon"
-version = "1.4.2"
+version = "1.0.0"
 authors = ["deskon <info@deskon.com>"]
 edition = "2021"
 build= "build.rs"

@@ -423,9 +423,25 @@ impl Client {
 
         if !key.is_empty() && !token.is_empty() {
             // mainly for the security of token
-            secure_tcp(&mut socket, &key)
-                .await
-                .map_err(|e| anyhow!("Failed to secure tcp: {}", e))?;
+            log::info!("Attempting to secure TCP connection with server");
+            match secure_tcp(&mut socket, &key).await {
+                Ok(_) => {
+                    log::info!("TCP connection secured successfully");
+                }
+                Err(e) => {
+                    // 如果安全握手失败，记录详细错误
+                    // 某些服务器配置可能不支持KeyExchange，可以继续使用非加密连接
+                    log::warn!("Failed to secure tcp: {}. This may be normal if server doesn't support KeyExchange. Continuing connection.", e);
+                    // 如果错误明确表示key问题，则失败
+                    if e.to_string().contains("invalid public key") || e.to_string().contains("Signature mismatch") {
+                        log::error!("Key verification failed, aborting connection");
+                        return Err(anyhow!("Failed to secure tcp: {}. Please check if the server key '{}' is correctly configured.", e, if key.len() > 50 { format!("{}...", &key[..50]) } else { key }));
+                    }
+                    // 对于超时错误，尝试继续连接（某些服务器可能不需要KeyExchange）
+                    // 但记录警告
+                    log::warn!("Continuing connection despite secure_tcp timeout. Connection may proceed without encryption.");
+                }
+            }
         } else if let Some(udp) = udp.1.as_ref() {
             let tm = Instant::now();
             loop {

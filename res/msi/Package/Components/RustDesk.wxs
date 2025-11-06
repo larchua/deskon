@@ -5,7 +5,7 @@
 		<?include ../Includes.wxi?>
 
 		<DirectoryRef Id="INSTALLFOLDER_INNER" FileSource="$(var.BuildDir)">
-			<Component Id="App.exe" Guid="620F0F69-4C17-4320-A619-495E329712A4">
+			<Component Id="App.exe" Guid="f920d525-4b20-4328-97d1-9576979becf4">
 				<File Id="App.exe" Name="$(var.Product).exe" KeyPath="yes" Checksum="yes">
 					<!--<fire:FirewallException Id="AppEx" Name="$(var.Product) Service" Scope="any" IgnoreFailure="yes" />-->
 				</File>
@@ -97,14 +97,14 @@
 
 		<!-- Shortcuts -->
 		<DirectoryRef Id="App.StartMenu">
-			<Component Id="App.StartMenu" Guid="30F6D57A-B805-4DA4-A071-05A3B22400CA">
+			<Component Id="App.StartMenu" Guid="a794f991-ec1f-487f-a9f1-f901429cfa1a">
 				<RegistryValue Root="HKCU" Key="Software\$(var.Product)" Name="App.StartMenu" Type="string" Value="1" KeyPath="yes" />
 				<RemoveFolder Id="Remove.App.StartMenu" On="uninstall" />
 			</Component>
 		</DirectoryRef>
 
 		<DirectoryRef Id="App.StartMenu">
-			<Component Id="App.StartMenu.Shortcut" Guid="43ABCAC7-E47D-42D8-A408-25EC70DBB993" Condition="STARTMENUSHORTCUTS = 1 OR STARTMENUSHORTCUTS = &quot;Y&quot; OR STARTMENUSHORTCUTS = &quot;y&quot;">
+			<Component Id="App.StartMenu.Shortcut" Guid="f003cfcd-7557-41bc-8b9c-1fbc0ce67725" Condition="STARTMENUSHORTCUTS = 1 OR STARTMENUSHORTCUTS = &quot;Y&quot; OR STARTMENUSHORTCUTS = &quot;y&quot;">
 				<Shortcut Id="App.StartMenu.Shortcut" Name="!(loc.SC_Client)" Description="!(loc.SC_Client_Desc)" Target="[!App.exe]" Icon="AppIcon" WorkingDirectory="INSTALLFOLDER_INNER" />
 				<!--
 					Fix ICE 38 by adding a dummy registry key that is the key for this shortcut.
@@ -113,26 +113,26 @@
 				<RegistryValue Root="HKCU" Key="Software\$(var.Product)" Name="App.StartMenu.Shortcut" Type="string" Value="1" KeyPath="yes" />
 			</Component>
 
-			<Component Id="App.StartMenu.ShortcutUninstall" Guid="E100D7F8-D607-4513-28DA-2C95E5EA698E" Condition="STARTMENUSHORTCUTS = 1 OR STARTMENUSHORTCUTS = &quot;Y&quot; OR STARTMENUSHORTCUTS = &quot;y&quot;">
+			<Component Id="App.StartMenu.ShortcutUninstall" Guid="cf76f5ea-6e18-4ffa-b0e4-6efa49555516" Condition="STARTMENUSHORTCUTS = 1 OR STARTMENUSHORTCUTS = &quot;Y&quot; OR STARTMENUSHORTCUTS = &quot;y&quot;">
 				<Shortcut Id="App.StartMenu.ShortcutUninstall" Name="!(loc.SC_Uninstall)" Description="!(loc.SC_Uninstall_Desc)" Target="[System6432Folder]msiexec.exe" Arguments="/x [ProductCode]" Icon="AppIcon" />
 				<RegistryValue Root="HKCU" Key="Software\$(var.Product)" Name="App.StartMenu.ShortcutUninstall" Type="string" Value="1" KeyPath="yes" />
 			</Component>
 		</DirectoryRef>
 		<StandardDirectory Id="DesktopFolder">
-			<Component Id="App.Desktop.Shortcut" Guid="CA8FB7AA-17F7-4E36-A58A-5A016A303709" Condition="DESKTOPSHORTCUTS = 1 OR DESKTOPSHORTCUTS = &quot;Y&quot; OR DESKTOPSHORTCUTS = &quot;y&quot;">
+			<Component Id="App.Desktop.Shortcut" Guid="3f166c31-562d-4e6b-a18c-66260079f0b9" Condition="DESKTOPSHORTCUTS = 1 OR DESKTOPSHORTCUTS = &quot;Y&quot; OR DESKTOPSHORTCUTS = &quot;y&quot;">
 				<Shortcut Id="App.Desktop.Shortcut" Name="!(loc.SC_Client)" Description="!(loc.SC_Client_Desc)" Target="[!App.exe]" Icon="AppIcon" WorkingDirectory="INSTALLFOLDER_INNER" />
 				<RegistryValue Root="HKCU" Key="Software\$(var.Product)" Name="App.Desktop.Shortcut" Type="string" Value="1" KeyPath="yes" />
 			</Component>
 		</StandardDirectory>
 		<StandardDirectory Id="StartupFolder">
-			<Component Id="App.StartupFolder.ShortcutTray" Guid="B1D1E2BB-E53E-E159-DB7C-744D5C726A8C" Condition="STARTUPSHORTCUTS = 1 AND (NOT CC_CONNECTION_TYPE=&quot;outgoing&quot;)">
+			<Component Id="App.StartupFolder.ShortcutTray" Guid="5d2ed87e-f6af-4d7f-901e-40ab68a550ad" Condition="STARTUPSHORTCUTS = 1 AND (NOT CC_CONNECTION_TYPE=&quot;outgoing&quot;)">
 				<Shortcut Id="App.StartupFolder.ShortcutTray" Name="!(loc.SC_Client_Tray)" Description="!(loc.SC_Client_Tray_Desc)" Target="[!App.exe]" Arguments="--tray" Icon="AppIcon" WorkingDirectory="INSTALLFOLDER_INNER" />
 				<RegistryValue Root="HKCU" Key="Software\$(var.Product)" Name="App.StartupFolder.ShortcutTray" Type="string" Value="1" KeyPath="yes" />
 			</Component>
 		</StandardDirectory>
 
 		<!--<DirectoryRef Id="INSTALLFOLDER_INNER">
-			<Component Id="App.UninstallShortcut" Guid="FB0F2AC7-2AE5-4C54-B860-5E472620B6B1">
+			<Component Id="App.UninstallShortcut" Guid="ae1c6cf8-cf7f-47c2-916d-55b076f919be">
 				<Shortcut Id="App.UninstallShortcut" Name="!(loc.SC_Uninstall)" Description="!(loc.SC_Uninstall_Desc)" Target="[System6432Folder]msiexec.exe" Arguments="/x [ProductCode]" Icon="AppIcon" />
 			</Component>
 		</DirectoryRef>-->
@@ -146,271 +146,538 @@
 			<ComponentRef Id="App.StartupFolder.ShortcutTray" />
 
 			<!--$AutoComonentStart$-->
-			<Component Guid="ad8d5a7c-5929-456a-bedc-661ac146b79d" >
+			<Component Guid="34d7a922-0620-49ec-9322-1417bb1db975" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/desktop_drop_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="c748fedd-1ddb-4755-82a8-16cb38e34042" >
+			<Component Guid="e8c49b45-9693-48fc-89f2-1747f4c31e54" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/desktop_multi_window_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="5bc866ff-8c81-4862-a671-927699270c9c" >
+			<Component Guid="a71dc4fa-2050-4310-9de2-6081cd2d746d" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/file_selector_windows_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="195928bc-a582-4087-807f-a91d696fc1a7" >
+			<Component Guid="0aecba34-a0a1-4e8e-b51c-4df86ab6be6d" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/flutter_custom_cursor_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="5bd87a85-c013-4fe1-bc25-8fed32e7ee18" >
+			<Component Guid="1fed24c1-4360-49db-b02b-d05e8804b02c" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/flutter_gpu_texture_renderer_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="f200943f-362b-4a87-91be-010c51eb3518" >
+			<Component Guid="0b08b5f0-e505-43c0-9a0a-6d031b011326" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/flutter_windows.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="091481fb-5371-48fa-a3f3-f4524c7b003b" >
-				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/librustdesk.dll" KeyPath="yes" Checksum="yes" />
+			<Component Guid="fba0dd34-a05f-4281-bb0c-b54bf272e63a" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/libdeskon.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="d68d9549-1b59-4be8-8173-141186fec1fa" >
+			<Component Guid="28bfab83-2df3-4e8c-866d-2b08f4793df0" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/screen_retriever_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="bc369b45-6847-471a-9d30-9ce9f263356d" >
+			<Component Guid="082abcc7-d777-4450-a0e4-e517617d21d1" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/texture_rgba_renderer_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="130ef205-9193-4424-8583-265512410da2" >
+			<Component Guid="378028ba-3242-4490-8995-6b20c19cc3d3" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/uni_links_desktop_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="39cd5d49-935d-4550-b05f-d2f8a7b4fe3a" >
+			<Component Guid="be7eaaa6-5272-49ae-944c-4db8cc486cff" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/url_launcher_windows_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="a78933d0-4372-4911-af17-f6f14b33a8dd" >
+			<Component Guid="95920fa3-9824-495f-9280-abddb86a7778" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/window_manager_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="f5c278c7-50e3-4cce-b677-aecea5194bc9" >
+			<Component Guid="0e4bf44a-5d68-4a96-a7fd-2bc2dd2f6137" >
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/window_size_plugin.dll" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="ee02e6c4-af9e-4684-8dd5-d99e6e72a4f6" Subdirectory="data">
+			<Component Guid="406cc882-d31a-4afd-bc05-042af289082b" Subdirectory="data">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/app.so" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="36ee72f5-ca49-4b3e-9bc1-5d2b5a673029" Subdirectory="data">
+			<Component Guid="d9c2e09b-d827-46a2-b6f2-a2d9c2de02a3" Subdirectory="data">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/icudtl.dat" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="f1d56a7c-68e9-4fc5-8027-b4d89a326843" Subdirectory="data\flutter_assets">
+			<Component Guid="73e5baa5-80af-450e-b310-466a765caaa6" Subdirectory="data\flutter_assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/AssetManifest.bin" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="8608a66d-e5f6-4d2f-9f35-c51643f358b4" Subdirectory="data\flutter_assets">
+			<Component Guid="e7672ff7-0d94-4902-acdb-eaa5af778619" Subdirectory="data\flutter_assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/AssetManifest.json" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="7e76ddb9-fb02-4735-ae91-ae72312cab93" Subdirectory="data\flutter_assets">
+			<Component Guid="7118045c-da30-472d-93d2-6fac98038ffb" Subdirectory="data\flutter_assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/FontManifest.json" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="5d58a527-666c-423c-9fa4-9f9e0511be1c" Subdirectory="data\flutter_assets">
+			<Component Guid="82440135-2470-4228-be6c-f39d51e8e453" Subdirectory="data\flutter_assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/NativeAssetsManifest.json" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="1d249054-1b55-4be5-bde1-676e54051dae" Subdirectory="data\flutter_assets">
+			<Component Guid="e5c5a1db-3a08-4786-8753-9d44de95cad5" Subdirectory="data\flutter_assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/NOTICES.Z" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="1126f83a-3418-46ba-966a-9b5a1e846042" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="5f2e0353-83f0-4d8c-a2eb-b111f9163334" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/actions.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="3a56881f-0984-4805-b4ba-1850eb613d50" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="81d8445a-3a82-4a64-82a3-387a274edf8a" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/actions_mobile.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="16cec68f-76f8-4f1b-aa40-e07c8d2c8a3a" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="29e99cd8-9755-4836-9f21-7bf1d200164a" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/address_book.ttf" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="6b4642fc-151d-4349-974d-3efb47d0a34f" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="0109d86e-25cc-4923-b2cd-786afdf13be3" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/android.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="724a6e26-0e11-49d6-8ee1-4a93c4ed5aff" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="e7e118cd-48af-4419-9ce5-c0b3871df352" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/arrow.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="cbaee89f-ba9c-4fff-9ea0-f26570aef7e1" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="6340ede4-31f1-4d4d-9244-19ee1c9fa7ce" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-apple.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="07974f3d-9d5c-4b1d-b447-185132ecbfe3" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="4844b499-20cf-492d-8a68-aeb3f4229ad7" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-auth0.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="3c6d52a9-e281-432d-90c0-825ffe14a00d" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="eb422f3c-57d4-46fd-b5f1-accb97d62e72" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-azure.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="28288e44-0a1a-44ff-81f1-185f788681f3" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="e4a0df0a-2273-42d5-9608-e33af51b3d27" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-default.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="3b0c4f9a-1a7d-416e-960c-2dc5e6093309" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="43d0e5a4-be10-4791-9449-ccc547064338" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-facebook.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="d4e42315-cdea-485a-9ad9-b05fdc869a1f" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="873e8252-8aa4-4893-ac9c-dc654932f494" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-github.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="8bf16f4a-4f4b-4264-bb7a-2263252e9438" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="4f2c700b-ce63-4dc3-86a2-8c2f7bce43d9" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-gitlab.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="7c683183-fa5b-4f34-aaf9-8f529d3ca6b9" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="ac3e1007-89a0-4396-986a-a61e2f84f717" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-google.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="37afd62b-3e8c-428d-9704-e8dd2b4675ec" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="a26ca8ae-8031-4c2c-bfce-ca20f2c9015c" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-okta.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="287c085e-fcd5-4a8a-861f-a8da2ee613bc" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="99a7d97e-b0ca-4eaf-9ae7-b3d77157a14c" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/call_end.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="ebf7b9d3-8569-40d3-8fd1-0e041c7dd981" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="d00caa32-7a5f-4e0a-9301-dd9711927c6b" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/call_wait.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="4c3773fe-e2fd-4ee4-80b6-bd4fcc2d89d7" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="5eeb1509-0c62-4663-91ec-b44eb666255e" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/chat.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="2ce75c3d-3bb3-4d00-99f6-030ed0ba0d35" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="9ae80297-8300-43ad-a680-b7b5ea917ac3" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/chat2.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="c537f773-3390-4363-af16-4a421489a76b" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="4489e33b-e53e-4a3c-a605-1cde2a0221be" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/checkbox-outline.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="ec8ff2c3-2521-4891-802e-1db0487d6185" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="22787625-076c-49f0-806f-c101ff77342e" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/chevron_up_chevron_down.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="c5d1eeb5-0990-4056-8b09-414f97dab6d7" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="8cd29240-c6d8-429e-a6e9-ea43be9604d7" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/close.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="6a9a0b61-67d8-4efe-9433-7e787002550b" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="54606c42-572f-419d-9354-1dd621f5e2ae" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/device_group.ttf" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="45c12428-2087-4ec6-94cb-d41c45458661" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="aec5e57d-fddb-4ce4-adb1-a0914210d5ff" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/display.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="37b30dc2-2bc0-492b-b8b4-9120cea3518e" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="496a3106-54cc-4e43-b501-02a68a6d4e16" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/dots.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="3f5ec861-5b05-4989-b360-d5024482ba12" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="d96df715-1ebe-4eda-84d1-cb586080854f" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/file.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="915eb512-6b3b-402b-bfd4-6523bd739730" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="b1627ef0-818c-44c6-aed4-0ab38627ff61" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/file_transfer.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="f24f4c59-ff65-4d59-b75d-8f6b2ceaa7f1" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="df3598aa-12be-4981-80c7-63052d6fc553" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/folder.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="4ef01441-e470-4052-8e4b-00a8a2322dee" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="05db21cc-d5e8-4c1e-94d0-2ac44652bd62" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/folder_new.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="5ca93d53-148c-47b4-bd88-70c8ec649a0a" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="28f8ca5f-c039-4ea6-8b00-8e639e9ac685" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/fullscreen.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="68dd499d-1c7e-4832-85e3-4dda3b86d502" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="530e8fd0-b639-461c-be1d-d3f4955da2ce" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/fullscreen_exit.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="512adbcf-5acd-432e-a306-4c269204c305" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="761ddd84-d54a-4f20-9fe6-e128d796ccf3" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/gestures.ttf" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="52c78a67-604e-42fd-90ac-2307b207264a" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="0f9addd9-232c-4bd1-94fb-4999a39e0b51" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/home.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="c34498d2-fabc-406d-82cf-a915f36a8144" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="763132cd-56ae-417d-82e1-aeb91c69a56e" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/icon.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="c0789e2d-cc9f-4766-acec-54db868a5994" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="e9a6eef6-e4e1-4cf7-85dd-a7ffd9b67630" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/insecure.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="a734a787-adde-4e52-9158-b55f1aeef1b8" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="5642baab-840e-4826-832c-617d09b5153a" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/insecure_relay.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="4e096e55-80fd-4171-b4ad-6fb156fa00fa" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="113805f8-4832-4948-9a53-da096e751f3f" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/kb_layout_iso.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="8af3f0e8-7b56-4831-b3a9-48ea7bd66d27" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="786a294d-2d58-4468-9c54-b0b71e086f03" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/kb_layout_not_iso.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="14dca4d4-6ea6-4b66-a9ee-8f3d3528d44a" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="ffa77582-0b01-40ff-85de-1d327a5d461f" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/keyboard.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="5a1b3db8-8bce-4fc9-b7bd-52cd087a0f72" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="eaafd425-b5c0-4161-bcbd-eff15a84d9b7" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/linux.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="13ba80fb-5f19-47ad-b2e3-2d22e38d51b8" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="e625ab50-33fa-4f51-b821-43e7fc8e1ddf" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/mac.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="5566bf8a-fbd7-4e2b-bd60-3446fdf1c482" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="aecc38e0-95c1-4993-80d0-297c373e351b" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/message_24dp_5F6368.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="3ddd0deb-6ffe-4c94-86cf-18ba0c7b8d5f" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="8c581593-11fb-4311-9c44-18ed5226fa6a" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/more.ttf" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="2fab8a28-6bf6-4279-b0dd-52f0669f640e" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="ecf6c216-6085-4412-90ba-22f387036f30" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/peer_searchbar.ttf" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="70f77ac5-8ee0-4098-99c6-c48bdf714892" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="dd940a4f-6379-43bc-88bd-739c72fb4cc6" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/pinned.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="35327f11-d1c9-4090-b3e0-a07fcd296f3d" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="93742f51-5a40-406b-a821-9584a5bd69ac" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/rec.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="68abdca2-7eeb-421d-b6fe-820bc365556c" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="21c7358d-69c6-43e8-8551-b0138967b3e6" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/record_screen.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="7f271e52-45a1-4478-9c96-380aec0a192e" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="7af81254-1e43-480e-aa06-8afd13088c0c" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/refresh.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="49edd81e-1ee0-4a71-b878-77609cb277e8" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="b0395666-8fa7-4360-bb03-a255d84df99c" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/scam.png" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="14a5175e-577c-44a8-bc02-7bcbba567d8a" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="8c85bd8c-cffe-4e6b-af21-94ce51f5dfd9" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/screen.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="de2e8328-b610-4c95-a858-d8dc4376de75" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="e533619e-032a-4526-9d13-f730c8543ba1" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/search.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="206a5693-740e-4297-a9f8-612e8e83cf09" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="0b837b7b-64a1-48cd-b0a8-9e81925c778d" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/secure.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="ff86d6e4-d86e-4bbb-9b39-b5556e17d855" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="b8c71e6d-e27c-4203-83a3-4c7f26ac8914" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/secure_relay.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="d55a95f3-7d75-499f-8bf1-c7d2b16e8c3d" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="b89fb778-3327-4a6f-9a5c-4553f0c1cd96" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/tabbar.ttf" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="1406f750-a706-43a2-bdd5-9b76be7bca72" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="9d3f036b-b20c-4c63-ac5f-c1e32f8f8772" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/transfer.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="371e96e1-fc06-468b-948f-fcb8704d36ee" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="a069c049-cd43-4229-b83e-abb7a1737b07" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/trash.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="6ce91061-f2e7-431f-8843-c72a14fa4b7f" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="d8824ed8-1fe9-429b-b142-487a640db12d" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/unpinned.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="bf7541b6-6ba9-4d09-9420-193030edb559" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="2f030363-7752-41d4-94ce-621bf821ad29" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/voice_call.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="c3dabaac-51e6-4035-8171-08c7105b2e1a" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="ca042e18-031c-4b63-a107-e70fe92b2f33" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/voice_call_waiting.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="97e9b52b-c2b8-4872-9a8a-6988681a3756" Subdirectory="data\flutter_assets\assets">
+			<Component Guid="c43c3570-f434-48b4-bef2-f5359c4d9851" Subdirectory="data\flutter_assets\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/win.svg" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="1076ed57-c09f-4801-bcf9-cf1db86c6525" Subdirectory="data\flutter_assets\fonts">
+			<Component Guid="62453e48-039a-4583-8fc8-f8556f6c05cb" Subdirectory="data\flutter_assets\fonts">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/fonts/MaterialIcons-Regular.otf" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="dd4f5ed2-0f63-4979-b818-c22e6b98d1ff" Subdirectory="data\flutter_assets\shaders">
+			<Component Guid="d41b9ea1-d6aa-4d08-8039-db862018dfac" Subdirectory="data\flutter_assets\shaders">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/shaders/ink_sparkle.frag" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="c42a36d0-9efc-4146-9395-8cef7d9f5fb1" Subdirectory="data\flutter_assets\packages\window_manager\images">
+			<Component Guid="07831916-a2ad-476c-a351-0a56ee028199" Subdirectory="data\flutter_assets\packages\window_manager\images">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/window_manager/images/ic_chrome_close.png" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="1474800b-12e3-48cd-b059-ffa19860114b" Subdirectory="data\flutter_assets\packages\window_manager\images">
+			<Component Guid="2ec07ab3-695d-4b5b-b98b-8c8bf207843f" Subdirectory="data\flutter_assets\packages\window_manager\images">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/window_manager/images/ic_chrome_maximize.png" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="2ce4a59d-135a-499b-a216-5ba83171530e" Subdirectory="data\flutter_assets\packages\window_manager\images">
+			<Component Guid="f80c975c-d33a-40b9-9356-e17b636695bd" Subdirectory="data\flutter_assets\packages\window_manager\images">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/window_manager/images/ic_chrome_minimize.png" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="e0fd8332-2aa7-4d2a-bf20-7cfdf9365d58" Subdirectory="data\flutter_assets\packages\window_manager\images">
+			<Component Guid="b717a2e5-f3dd-43ca-a01f-72fd56bbe550" Subdirectory="data\flutter_assets\packages\window_manager\images">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/window_manager/images/ic_chrome_unmaximize.png" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="c6ecd9b7-4f20-486a-82ba-69d011c7e1dd" Subdirectory="data\flutter_assets\packages\wakelock_plus\assets">
+			<Component Guid="581606a3-e6a9-4570-9028-f067e9b94c02" Subdirectory="data\flutter_assets\packages\wakelock_plus\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/wakelock_plus/assets/no_sleep.js" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="64a3fd89-cb85-44c6-9f34-7c40ba13943c" Subdirectory="data\flutter_assets\packages\flex_color_picker\assets">
+			<Component Guid="dfac35b8-2d73-4737-abe4-6c08904c2e6d" Subdirectory="data\flutter_assets\packages\flex_color_picker\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/flex_color_picker/assets/opacity.png" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="6863c31a-41b7-411d-beb7-43e5b253e9b9" Subdirectory="data\flutter_assets\packages\dash_chat_2\assets">
+			<Component Guid="ea669398-b6ca-49e2-bfd8-200c2b71f983" Subdirectory="data\flutter_assets\packages\dash_chat_2\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/dash_chat_2/assets/placeholder.png" KeyPath="yes" Checksum="yes" />
 			</Component>
-			<Component Guid="6d1f4de2-287d-431f-9fbc-5774b384c888" Subdirectory="data\flutter_assets\packages\dash_chat_2\assets">
+			<Component Guid="0ea63fa3-8bbb-4028-a527-841118f03ee2" Subdirectory="data\flutter_assets\packages\dash_chat_2\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/dash_chat_2/assets/profile_placeholder.png" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="ed2cc1ae-269d-4b5a-8cf2-1e653bcaf3c6" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/desktop_drop_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="0c713976-3242-4042-a0e6-fd7619405967" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/desktop_multi_window_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="27926f43-c6b4-4191-a6df-1902fad42787" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/file_selector_windows_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="55e8914c-245f-455a-b0f8-8a280379bbf0" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/flutter_custom_cursor_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="779a8f4d-7af5-4238-8cd8-813d7bb94df7" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/flutter_gpu_texture_renderer_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="a082b605-2080-4d4a-a93b-06a187b438db" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/flutter_windows.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="7eaaa258-9a14-4fe1-b445-b4dc7c4bed6b" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/librustdesk.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="22c5e93a-694f-4e95-b584-86aa452de06b" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/screen_retriever_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="8d30ae04-138a-4705-931b-a37ae2cecc31" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/texture_rgba_renderer_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="8842a7a5-f8c3-4217-a4ba-ba1a0bf164b1" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/uni_links_desktop_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="af076364-542c-478c-960a-3569f4cd7462" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/url_launcher_windows_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="36eaa3ec-c9fa-4ab2-9c5f-12483269fa66" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/window_manager_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="2eb815fa-7cae-406d-a905-e042cdd1722f" >
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/window_size_plugin.dll" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="7cb07711-6c08-438c-b6ea-6342aaa6456e" Subdirectory="data">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/app.so" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="ec5045e6-14fb-428e-b824-2832bb9b57ac" Subdirectory="data">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/icudtl.dat" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="9ee04a76-7b4f-4e09-8e65-aac3be2b111f" Subdirectory="data\flutter_assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/AssetManifest.bin" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="fc17fb1d-f192-411c-9b00-43f7ecee5231" Subdirectory="data\flutter_assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/AssetManifest.json" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="bf3cf4ea-1883-4168-8257-57364061db10" Subdirectory="data\flutter_assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/FontManifest.json" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="f0946d69-cdec-4fad-96a9-2da73a4a0167" Subdirectory="data\flutter_assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/NativeAssetsManifest.json" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="2ef62c26-3790-42b2-a3e7-43516d0e0886" Subdirectory="data\flutter_assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/NOTICES.Z" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="cafb0a82-a21a-4a6b-8c63-36ba36888b58" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/actions.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="2031ff6b-bfa9-4d6d-b2a1-96fa32c66a16" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/actions_mobile.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="7bafef9a-d625-4287-9b59-2f87cb189d82" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/address_book.ttf" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="b21af641-3c9b-4ddc-ab06-0db692da066b" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/android.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="be3577ca-c35f-4f80-8a32-16878db391e3" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/arrow.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="9e35b17d-8bcc-4797-bfb5-65953d8c14f6" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-apple.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="a567cdba-0e70-4956-9544-f00680b821c2" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-auth0.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="d982517c-8e9b-49a8-b851-2c44ec5862b5" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-azure.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="99f3ad5b-0134-4015-8a05-77f22350e11a" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-default.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="814eef22-18ff-47b6-b0d3-43f1c6207b8d" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-facebook.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="a9fe54b7-c5bf-40f2-a22c-62c990e74f66" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-github.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="66996f4c-e35c-45bb-8bd5-1587cab723f6" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-gitlab.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="85dd8232-ace6-4df1-96b3-94a52ae23bb9" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-google.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="4c789454-7da1-4336-857e-df076bcc86ba" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/auth-okta.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="3dee453c-1e26-41d1-a708-dc8c2e065643" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/call_end.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="0ac2a795-6b0f-4648-8c8a-d1492fe287b6" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/call_wait.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="6be470c7-842b-4989-b1e8-733fd73be479" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/chat.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="8b11c6ea-606d-4b04-92de-d538a447648a" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/chat2.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="e47fa414-056f-4de1-a4f1-49d368a4c8c8" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/checkbox-outline.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="74390101-552c-40a8-b9d5-19f8544ead7b" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/chevron_up_chevron_down.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="bf574549-023b-47b0-a11b-4ee597763ba9" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/close.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="58fcc179-0f25-4bd4-98f8-ce6bdc3ad98a" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/device_group.ttf" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="15dc178c-545e-4fcd-8340-2c280d6d1265" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/display.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="74815f4f-a380-49c9-8356-75eb5fdd8eb1" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/dots.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="f65a6f32-17be-4a54-b9ca-75f8a384a61d" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/file.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="4ffeb4e7-1bc8-4a27-8c23-06bfeb5b4241" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/file_transfer.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="1ace84f3-0ee4-49ee-a11e-263696fb364f" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/folder.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="4b4a8dcc-6f04-4de5-91a9-deeabf9b95dc" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/folder_new.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="2a400f45-4538-4b76-bc03-8010d72ce7e0" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/fullscreen.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="80cf41f8-8bc1-4b4e-a318-dd4dbbd0fe3f" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/fullscreen_exit.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="d23637ee-4c99-4894-ad5b-e0bf8814044b" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/gestures.ttf" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="ecb21254-9179-43d9-9203-1cfc8798d1cb" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/home.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="05b36f2b-9a62-46c9-b622-f61ac39a720e" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/icon.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="43d75703-f14a-44bb-b896-e563ec3e0788" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/insecure.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="e09c0ec1-4967-4235-b6fa-7cb375a6f13f" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/insecure_relay.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="ad691243-c0f9-4320-8079-226fe3aacdc9" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/kb_layout_iso.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="e63a1aba-78d6-4e3b-95f9-355cf0191926" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/kb_layout_not_iso.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="0e4cd706-ecde-4be4-82a5-1dce5743046a" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/keyboard.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="469458aa-406e-4db7-833f-5afbe6eb9991" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/linux.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="100b2eb3-dc33-40af-9231-7bf20599c1de" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/mac.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="7255c1d0-57e0-49e0-9e64-43b2d9b78569" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/message_24dp_5F6368.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="95b96d34-c05c-454e-8c8f-fc30da34a86b" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/more.ttf" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="19fb5607-9bd8-41ca-9fd5-06899ce837e0" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/peer_searchbar.ttf" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="bab81386-4e69-43fa-86d2-9d40c30f69f1" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/pinned.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="ed111d08-517b-4972-86d8-8c7bf6c7aba6" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/rec.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="f6b15d04-3402-47f6-b92f-af8f39f5750d" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/record_screen.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="a4bb0712-f452-47e6-87b3-50bc7bc6ac48" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/refresh.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="7daec301-c603-4dfb-ba67-3d2068202533" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/scam.png" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="6c73b90d-65cb-4f51-9beb-344b2093e565" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/screen.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="3ebe14b1-e495-42bc-b934-dda2c6ca927b" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/search.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="ab93b994-39ac-40d6-a697-809b8f833062" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/secure.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="e14ae502-9ffc-48c9-b1da-14ffa056255c" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/secure_relay.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="d4b5058d-d8ec-46cd-8a72-ebfce6d2b815" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/tabbar.ttf" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="3d132bf6-d543-4b97-a40b-a1f485caaad7" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/transfer.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="f062bd62-fbc7-4246-8d71-c09f3f8727fc" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/trash.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="59218526-ab4e-46fa-8f47-c92f60ed28ff" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/unpinned.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="e9aad296-cfd2-4ace-9dd1-221b38c69a67" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/voice_call.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="b20adb03-c345-469c-9703-4a62f862085e" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/voice_call_waiting.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="ea1981c6-7ce8-4b73-9c88-48d593c75bd4" Subdirectory="data\flutter_assets\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/assets/win.svg" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="e89733d8-8f97-47c8-af16-3bfa0398218d" Subdirectory="data\flutter_assets\fonts">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/fonts/MaterialIcons-Regular.otf" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="30cbd551-89f1-48ef-bb31-c6839e56e370" Subdirectory="data\flutter_assets\shaders">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/shaders/ink_sparkle.frag" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="e24c3b05-8969-4789-852f-52ec84f0e9cf" Subdirectory="data\flutter_assets\packages\window_manager\images">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/window_manager/images/ic_chrome_close.png" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="9f338d8a-2f64-4995-9d57-3dac1264435c" Subdirectory="data\flutter_assets\packages\window_manager\images">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/window_manager/images/ic_chrome_maximize.png" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="cf7e1732-11eb-4339-abe6-4f4875a21d27" Subdirectory="data\flutter_assets\packages\window_manager\images">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/window_manager/images/ic_chrome_minimize.png" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="b279a045-f179-401e-bd09-ecd429497049" Subdirectory="data\flutter_assets\packages\window_manager\images">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/window_manager/images/ic_chrome_unmaximize.png" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="28debd64-39b2-410e-85d6-4c005482c294" Subdirectory="data\flutter_assets\packages\wakelock_plus\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/wakelock_plus/assets/no_sleep.js" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="78d7e02a-a1de-444d-b5bb-9070d2537340" Subdirectory="data\flutter_assets\packages\flex_color_picker\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/flex_color_picker/assets/opacity.png" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="c66c5a58-d3b9-4d28-b0ac-cd013e93d1f9" Subdirectory="data\flutter_assets\packages\dash_chat_2\assets">
+				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/dash_chat_2/assets/placeholder.png" KeyPath="yes" Checksum="yes" />
+			</Component>
+			<Component Guid="a2d3233e-b44a-4607-b1d8-bd88f9083378" Subdirectory="data\flutter_assets\packages\dash_chat_2\assets">
 				<File Source="D:/MyProject/Deskon/deskon/flutter/build/windows/x64/runner/Release/data/flutter_assets/packages/dash_chat_2/assets/profile_placeholder.png" KeyPath="yes" Checksum="yes" />
 			</Component>
 			<!--$AutoComponentEnd$-->

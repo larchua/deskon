@@ -630,7 +630,7 @@ class _DesktopTabState extends State<DesktopTab>
                       child: Row(children: [
                         Offstage(
                           offstage: !showLogo,
-                          child: loadIcon(16),
+                          child: buildDeskONLogo(16),
                         ),
                         Offstage(
                             offstage: !showTitle,

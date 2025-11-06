@@ -339,6 +339,52 @@ class UnreadChatCountState {
   static RxInt find(String id) => Get.find<RxInt>(tag: tag(id));
 }
 
+class HomeSelectedMenuState {
+  static String tag() => 'home_selected_menu';
+
+  static void init() {
+    final key = tag();
+    if (!Get.isRegistered<RxInt>(tag: key)) {
+      final RxInt state = RxInt(0);
+      Get.put<RxInt>(state, tag: key);
+    } else {
+      Get.find<RxInt>(tag: key).value = 0;
+    }
+  }
+
+  static void delete() {
+    final key = tag();
+    if (Get.isRegistered<RxInt>(tag: key)) {
+      Get.delete<RxInt>(tag: key);
+    }
+  }
+
+  static RxInt find() => Get.find<RxInt>(tag: tag());
+}
+
+class HomeInitialSettingsTabState {
+  static String tag() => 'home_initial_settings_tab';
+
+  static void init() {
+    final key = tag();
+    if (!Get.isRegistered<RxInt>(tag: key)) {
+      final RxInt state = RxInt(0);
+      Get.put<RxInt>(state, tag: key);
+    } else {
+      Get.find<RxInt>(tag: key).value = 0;
+    }
+  }
+
+  static void delete() {
+    final key = tag();
+    if (Get.isRegistered<RxInt>(tag: key)) {
+      Get.delete<RxInt>(tag: key);
+    }
+  }
+
+  static RxInt find() => Get.find<RxInt>(tag: tag());
+}
+
 initSharedStates(String id) {
   PrivacyModeState.init(id);
   BlockInputState.init(id);

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
@@ -12,11 +13,15 @@ import 'package:flutter_hbb/models/peer_tab_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../common.dart';
 import '../../models/model.dart';
 import '../../models/platform_model.dart';
+import '../../models/usage_time_model.dart';
 import 'address_book.dart';
+import 'login.dart';
 
 void clientClose(SessionID sessionId, OverlayDialogManager dialogManager) {
   msgBox(sessionId, 'info', 'Close', 'Are you sure to close the connection?',
@@ -1066,6 +1071,85 @@ void showWaitUacDialog(
               ),
             ],
           ));
+}
+
+/// 显示使用时间限制提示对话框，要求用户登录
+Future<bool?> showUsageLimitDialog(BuildContext context) async {
+  final message = UsageTimeModel.getLimitMessage();
+  final remaining = UsageTimeModel.getRemainingSeconds();
+  final isLimitReached = remaining == 0;
+
+  return await gFFI.dialogManager.show<bool>((setState, close, ctx) {
+    void onLogin() async {
+      close();
+      final loginResult = await loginDialog();
+      if (loginResult == true) {
+        // 登录成功后重置使用时间
+        UsageTimeModel.reset();
+        // 重新检查是否可以连接
+        if (UsageTimeModel.canUseRemoteControl()) {
+          // 可以连接，继续执行
+        } else {
+          // 仍然不能连接（理论上不应该发生）
+          showToast(translate('Please login to continue'));
+        }
+      }
+    }
+
+    return CustomAlertDialog(
+      title: Text(
+        isLimitReached
+            ? translate('Usage Limit Reached')
+            : translate('Usage Limit Warning'),
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 16),
+          Text(
+            isLimitReached
+                ? '免费使用时间已用完。为了继续使用远程控制功能，请登录您的账户。'
+                : '您即将达到免费使用时间限制。建议您登录账户以继续使用远程控制功能。',
+            style: TextStyle(fontSize: 14),
+          ),
+          SizedBox(height: 12),
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Theme.of(ctx).colorScheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            '登录后，您将获得：\n• 无限制的远程控制时间\n• 更多高级功能\n• 更好的使用体验',
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+      actions: [
+        dialogButton(
+          translate('Cancel'),
+          icon: Icon(Icons.cancel_outlined),
+          onPressed: () => close(false),
+        ),
+        dialogButton(
+          translate('Login'),
+          icon: Icon(Icons.login),
+          onPressed: onLogin,
+        ),
+      ],
+    );
+  });
 }
 
 // Another username && password dialog?
@@ -2575,4 +2659,425 @@ Widget trustedDevicesTable(
           }).toList(),
         )),
   );
+}
+
+/// 显示修改头像对话框
+void showChangeAvatarDialog(OverlayDialogManager dialogManager) {
+  dialogManager.show((setState, close, context) {
+    String? errorMsg;
+    bool isUploading = false;
+    String? selectedFilePath;
+    Uint8List? selectedImageBytes;
+
+    // 选择图片（不立即上传）
+    Future<void> pickImage() async {
+      try {
+        setState(() {
+          errorMsg = null;
+        });
+
+        String? filePath;
+        Uint8List? imageBytes;
+
+        if (isWeb) {
+          // Web 平台使用 file_picker
+          FilePickerResult? result = await FilePicker.platform.pickFiles(
+            type: FileType.image,
+            allowMultiple: false,
+            withData: true, // 确保获取文件数据
+          );
+
+          if (result != null && result.files.single.bytes != null) {
+            imageBytes = result.files.single.bytes;
+            // Web 平台：保存文件对象以便上传时使用
+            // 对于 Web，我们需要将 bytes 保存为临时文件或者直接传递 bytes
+            // 这里使用文件名作为标识
+            filePath = result.files.single.name;
+          } else {
+            return;
+          }
+        } else {
+          // 移动和桌面平台使用 image_picker
+          final ImagePicker picker = ImagePicker();
+          final XFile? image = await picker.pickImage(
+            source: ImageSource.gallery,
+            maxWidth: 1024,
+            maxHeight: 1024,
+            imageQuality: 85,
+          );
+
+          if (image != null) {
+            filePath = image.path;
+            // 读取图片字节用于预览
+            if (!isWeb) {
+              try {
+                // 只在非 Web 平台使用 File
+                final file = await image.readAsBytes();
+                imageBytes = file;
+              } catch (e) {
+                debugPrint('Failed to read image bytes: $e');
+              }
+            } else {
+              // Web 平台已经通过 FilePicker 获取了 bytes
+              imageBytes = await image.readAsBytes();
+            }
+          } else {
+            return;
+          }
+        }
+
+        if (filePath == null) {
+          return;
+        }
+
+        // 验证文件大小（最大5MB）
+        if (imageBytes != null && imageBytes.length > 5 * 1024 * 1024) {
+          setState(() {
+            errorMsg = translate('文件大小不能超过5MB');
+            selectedFilePath = null;
+            selectedImageBytes = null;
+          });
+          return;
+        }
+
+        setState(() {
+          selectedFilePath = filePath;
+          selectedImageBytes = imageBytes;
+          errorMsg = null;
+        });
+      } catch (e) {
+        setState(() {
+          errorMsg = '${translate('选择图片失败')}: $e';
+        });
+      }
+    }
+
+    // 上传头像
+    Future<void> uploadAvatar() async {
+      if (selectedFilePath == null) {
+        setState(() {
+          errorMsg = translate('请先选择要上传的头像文件');
+        });
+        return;
+      }
+
+      try {
+        setState(() {
+          errorMsg = null;
+          isUploading = true;
+        });
+
+        // 对于 Web 平台，FilePicker 返回的是 bytes，需要创建临时文件
+        String? uploadPath = selectedFilePath;
+        if (isWeb && selectedImageBytes != null) {
+          // Web 平台：FilePicker 返回的是 bytes，我们需要通过其他方式上传
+          // 这里暂时使用一个变通方法：检查 uploadAvatar 是否支持直接上传 bytes
+          // 如果不支持，我们需要修改 user_model.dart 中的 uploadAvatar 方法
+          // 为了简化，我们先尝试使用文件路径（可能为文件名）
+          uploadPath = selectedFilePath;
+
+          // 注意：如果 uploadAvatar 不支持 Web 平台的 bytes，这里会失败
+          // 需要在 user_model.dart 中修改 uploadAvatar 以支持 Web 平台
+        }
+
+        // 上传头像
+        final result = await gFFI.userModel.uploadAvatar(uploadPath!);
+
+        setState(() {
+          isUploading = false;
+        });
+
+        if (result['success'] == true) {
+          showToast(result['msg'] ?? translate('头像上传成功'));
+          // 刷新用户信息
+          gFFI.userModel.refreshCurrentUser();
+          close();
+        } else {
+          setState(() {
+            errorMsg = result['msg'] ?? translate('头像上传失败');
+          });
+        }
+      } catch (e) {
+        setState(() {
+          isUploading = false;
+          errorMsg = '${translate('上传失败')}: $e';
+        });
+      }
+    }
+
+    return CustomAlertDialog(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.account_circle, color: MyTheme.accent),
+          Text(translate('Change Avatar')).paddingOnly(left: 10),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (errorMsg != null)
+            Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMsg!,
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // 图片预览（可点击选择图片）
+          InkWell(
+            onTap: isUploading ? null : pickImage,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: selectedImageBytes != null
+                      ? MyTheme.accent.withOpacity(0.5)
+                      : Colors.grey[300]!,
+                  width: selectedImageBytes != null ? 2 : 1,
+                ),
+                color: selectedImageBytes == null ? Colors.grey[100] : null,
+              ),
+              child: selectedImageBytes != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        selectedImageBytes!,
+                        fit: BoxFit.cover,
+                        width: 120,
+                        height: 120,
+                      ),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          translate('点击选择图片'),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+          Text(
+            translate('支持格式：JPG、PNG、GIF\n文件大小：最大 5MB'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+          ),
+          if (isUploading) ...[
+            const SizedBox(height: 16),
+            const LinearProgressIndicator(),
+          ],
+        ],
+      ),
+      actions: [
+        dialogButton(
+          translate('Cancel'),
+          icon: Icon(Icons.close_rounded),
+          onPressed: isUploading ? null : close,
+          isOutline: true,
+        ),
+        if (selectedFilePath != null && selectedImageBytes != null)
+          dialogButton(
+            translate('Save'),
+            icon: Icon(Icons.save),
+            onPressed: isUploading ? null : uploadAvatar,
+          ),
+      ],
+      onCancel: isUploading ? null : close,
+    );
+  });
+}
+
+/// 显示修改密码对话框
+void showChangePasswordDialog(OverlayDialogManager dialogManager) {
+  final oldPasswordController = TextEditingController();
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+
+  String? errorMsg;
+  bool isChanging = false;
+
+  dialogManager.show((setState, close, context) {
+    Future<void> changePassword() async {
+      final oldPassword = oldPasswordController.text.trim();
+      final newPassword = newPasswordController.text.trim();
+      final confirmPassword = confirmPasswordController.text.trim();
+
+      // 验证
+      if (oldPassword.isEmpty) {
+        setState(() {
+          errorMsg = translate('请输入旧密码');
+        });
+        return;
+      }
+
+      if (newPassword.isEmpty) {
+        setState(() {
+          errorMsg = translate('请输入新密码');
+        });
+        return;
+      }
+
+      if (newPassword.length < 8 || newPassword.length > 20) {
+        setState(() {
+          errorMsg = translate('新密码长度应在8~20位');
+        });
+        return;
+      }
+
+      if (newPassword != confirmPassword) {
+        setState(() {
+          errorMsg = translate('两次输入的新密码不一致');
+        });
+        return;
+      }
+
+      if (oldPassword == newPassword) {
+        setState(() {
+          errorMsg = translate('新密码不能与旧密码相同');
+        });
+        return;
+      }
+
+      setState(() {
+        errorMsg = null;
+        isChanging = true;
+      });
+
+      try {
+        final result =
+            await gFFI.userModel.changePassword(oldPassword, newPassword);
+
+        setState(() {
+          isChanging = false;
+        });
+
+        if (result['success'] == true) {
+          showToast(result['msg'] ?? translate('密码修改成功'));
+          close();
+        } else {
+          setState(() {
+            errorMsg = result['msg'] ?? translate('密码修改失败');
+          });
+        }
+      } catch (e) {
+        setState(() {
+          isChanging = false;
+          errorMsg = '${translate('密码修改失败')}: $e';
+        });
+      }
+    }
+
+    return CustomAlertDialog(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.lock, color: MyTheme.accent),
+          Text(translate('Change Password')).paddingOnly(left: 10),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (errorMsg != null)
+            Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMsg!,
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          PasswordWidget(
+            controller: oldPasswordController,
+            title: translate('Old Password'),
+            autoFocus: false,
+          ),
+          const SizedBox(height: 16),
+          PasswordWidget(
+            controller: newPasswordController,
+            title: translate('New Password'),
+            autoFocus: false,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            translate('密码长度应在8~20位'),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+          ),
+          const SizedBox(height: 16),
+          PasswordWidget(
+            controller: confirmPasswordController,
+            title: translate('Confirm New Password'),
+            autoFocus: false,
+          ),
+          if (isChanging) ...[
+            const SizedBox(height: 16),
+            const LinearProgressIndicator(),
+          ],
+        ],
+      ),
+      actions: [
+        dialogButton(
+          translate('Cancel'),
+          icon: Icon(Icons.close_rounded),
+          onPressed: close,
+          isOutline: true,
+        ),
+        dialogButton(
+          translate('OK'),
+          icon: Icon(Icons.done_rounded),
+          onPressed: isChanging ? null : changePassword,
+        ),
+      ],
+      onSubmit: () {
+        changePassword();
+      },
+      onCancel: close,
+    );
+  });
 }

@@ -435,6 +435,10 @@ Future<bool?> loginDialog() async {
               await bind.mainSetLocalOption(
                   key: 'user_info', value: jsonEncode(resp.user ?? {}));
             }
+            // 登录成功后立即拉取会员信息（无论是新保存的 token 还是在 Rust 端已保存的）
+            debugPrint(
+                '[Membership] Login successful, fetching membership info immediately');
+            gFFI.userModel.fetchMembershipInfo(resp.access_token!);
             if (close != null) {
               close(true);
             }
@@ -640,6 +644,10 @@ Future<bool?> verificationCodeDialog(
             if (resp.access_token != null) {
               await bind.mainSetLocalOption(
                   key: 'access_token', value: resp.access_token!);
+              // 保存 token 后立即拉取会员信息
+              debugPrint(
+                  '[Membership] Token saved (verification code), fetching membership info immediately');
+              gFFI.userModel.fetchMembershipInfo(resp.access_token!);
               close(true);
               return;
             }

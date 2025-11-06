@@ -2,6 +2,18 @@
 <Include xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
 	<!--$PreVarsStart$-->
+	<?define Version="1.0.0.29372388" ?>
+	<?define Manufacturer="PURSLANE" ?>
+	<?define Product="Deskon" ?>
+	<?define Description="Deskon Installer" ?>
+	<?define ProductLower="deskon" ?>
+	<?define RegKeyRoot=".$(var.ProductLower)" ?>
+	<?define RegKeyInstall="$(var.RegKeyRoot)\Install" ?>
+	<?define BuildDir="D:\MyProject\Deskon\deskon\flutter\build\windows\x64\runner\Release" ?>
+	<?define BuildDate="2025-11-05 19:44" ?>
+
+	<!-- The UpgradeCode must be consistent for each product. ! -->
+	<?define UpgradeCode = "dbd6bf63-baf4-5383-a857-e60938c234be" ?>
 	<?define Version="1.4.2.29314251" ?>
 	<?define Manufacturer="PURSLANE" ?>
 	<?define Product="RustDesk" ?>

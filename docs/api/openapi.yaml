@@ -1,0 +1,606 @@
+openapi: 3.0.3
+info:
+  title: Deskon API
+  description: |
+    Deskon 远程桌面管理系统 API 文档
+    
+    提供完整的用户认证、设备管理、地址簿同步等功能。
+    
+    **Base URL**: http://your-domain:21114/api
+    
+    **认证方式**: Bearer Token
+    
+  version: 1.0.0
+  contact:
+    name: Deskon Team
+    url: https://github.com/your-repo/deskon-api-server
+
+servers:
+  - url: http://localhost:21114/api
+    description: 本地开发服务器
+  - url: http://your-domain:21114/api
+    description: 生产服务器
+
+tags:
+  - name: Authentication
+    description: 用户认证相关接口
+  - name: AddressBook
+    description: 地址簿管理接口
+  - name: Device
+    description: 设备管理接口
+  - name: Audit
+    description: 审计日志接口
+
+security:
+  - BearerAuth: []
+
+paths:
+  /register:
+    post:
+      tags:
+        - Authentication
+      summary: 用户注册
+      description: |
+        注册新用户账号。客户端可以直接调用此接口进行用户注册。
+        
+        **注意**:
+        - 注册功能受系统配置控制，如果未开放注册将返回错误
+        - 第一个注册的用户自动获得管理员权限
+        - 注册成功后可直接使用登录接口登录
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: 用户名（至少3个字符）
+                  minLength: 3
+                  example: newuser
+                password:
+                  type: string
+                  format: password
+                  description: 密码（8-20个字符）
+                  minLength: 8
+                  maxLength: 20
+                  example: mypassword123
+      responses:
+        '200':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 1
+                  message:
+                    type: string
+                    example: 注册成功！
+                  user:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+                      is_admin:
+                        type: boolean
+        '400':
+          description: 注册失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /login:
+    post:
+      tags:
+        - Authentication
+      summary: 用户登录
+      description: 用户登录获取访问令牌
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+                - id
+                - uuid
+              properties:
+                username:
+                  type: string
+                  description: 用户名
+                  example: myuser
+                password:
+                  type: string
+                  format: password
+                  description: 密码
+                  example: mypassword
+                id:
+                  type: string
+                  description: RustDesk 客户端ID
+                  example: client-id-123
+                uuid:
+                  type: string
+                  description: 设备UUID
+                  example: device-uuid-456
+                autoLogin:
+                  type: boolean
+                  description: 是否自动登录
+                  default: true
+                type:
+                  type: string
+                  description: 客户端类型
+                deviceInfo:
+                  type: object
+                  description: 设备信息
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: 访问令牌
+                  type:
+                    type: string
+                    example: access_token
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+        '400':
+          description: 登录失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /logout:
+    post:
+      tags:
+        - Authentication
+      summary: 用户登出
+      description: 登出用户，清除服务器端的token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - uuid
+              properties:
+                id:
+                  type: string
+                  description: RustDesk 客户端ID
+                uuid:
+                  type: string
+                  description: 设备UUID
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 1
+
+  /currentUser:
+    post:
+      tags:
+        - Authentication
+      summary: 获取当前用户信息
+      description: 获取当前登录用户的信息和token
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  type:
+                    type: string
+                  name:
+                    type: string
+
+  /ab:
+    get:
+      tags:
+        - AddressBook
+      summary: 获取地址簿
+      description: 获取用户的标签和设备列表
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated_at:
+                    type: string
+                    format: date-time
+                  data:
+                    type: string
+                    description: JSON字符串格式的地址簿数据
+                    example: '{"tags":[],"peers":[],"tag_colors":{}}'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - AddressBook
+      summary: 更新地址簿
+      description: 更新用户的标签和设备列表
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: string
+                  description: JSON字符串格式的地址簿数据
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  data:
+                    type: string
+
+  /ab/get:
+    post:
+      tags:
+        - AddressBook
+      summary: 获取地址簿（兼容性端点）
+      description: 兼容 x86-sciter 版本客户端的地址簿获取接口
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressBookResponse'
+
+  /sysinfo:
+    post:
+      tags:
+        - Device
+      summary: 注册/更新设备信息
+      description: 注册新设备或更新现有设备的系统信息
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - uuid
+                - cpu
+                - hostname
+                - memory
+                - os
+                - version
+              properties:
+                id:
+                  type: string
+                  description: RustDesk 客户端ID
+                uuid:
+                  type: string
+                  description: 设备UUID
+                cpu:
+                  type: string
+                  description: CPU信息
+                hostname:
+                  type: string
+                  description: 主机名
+                memory:
+                  type: string
+                  description: 内存信息
+                os:
+                  type: string
+                  description: 操作系统
+                version:
+                  type: string
+                  description: 客户端版本
+                username:
+                  type: string
+                  description: 系统用户名
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+                    example: ok
+
+  /heartbeat:
+    post:
+      tags:
+        - Device
+      summary: 心跳保活
+      description: 保持设备在线状态，更新设备IP地址，延长token有效期
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - uuid
+              properties:
+                id:
+                  type: string
+                  description: RustDesk 客户端ID
+                uuid:
+                  type: string
+                  description: 设备UUID
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+                    example: 在线
+
+  /audit:
+    post:
+      tags:
+        - Audit
+      summary: 提交审计日志
+      description: 提交连接日志或文件传输日志
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/AuditNewConnection'
+                - $ref: '#/components/schemas/AuditCloseConnection'
+                - $ref: '#/components/schemas/AuditUpdateConnection'
+                - $ref: '#/components/schemas/AuditFileTransfer'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 1
+                  data:
+                    type: string
+                    example: ok
+
+  /users:
+    post:
+      tags:
+        - Authentication
+      summary: 用户端点（占位）
+      description: 占位端点，始终返回成功
+      security: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 1
+                  data:
+                    type: string
+                    example: 好的
+
+  /peers:
+    post:
+      tags:
+        - Device
+      summary: 设备端点（占位）
+      description: 占位端点，始终返回成功
+      security: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 1
+                  data:
+                    type: string
+                    example: ok
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 使用 Bearer Token 认证，格式为 "Bearer <access_token>"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: 错误信息
+
+    AddressBookResponse:
+      type: object
+      properties:
+        updated_at:
+          type: string
+          format: date-time
+        data:
+          type: string
+          description: JSON字符串格式的地址簿数据
+
+    Peer:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 设备ID
+        username:
+          type: string
+          description: 系统用户名
+        hostname:
+          type: string
+          description: 主机名
+        alias:
+          type: string
+          description: 别名
+        platform:
+          type: string
+          description: 平台
+        tags:
+          type: array
+          items:
+            type: string
+          description: 标签数组
+        hash:
+          type: string
+          description: 连接密码hash
+
+    AddressBook:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+          description: 标签列表
+        peers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Peer'
+          description: 设备列表
+        tag_colors:
+          type: object
+          additionalProperties:
+            type: integer
+          description: 标签颜色映射
+
+    AuditNewConnection:
+      type: object
+      required:
+        - action
+        - conn_id
+      properties:
+        action:
+          type: string
+          enum: [new]
+        conn_id:
+          type: string
+        ip:
+          type: string
+        id:
+          type: string
+        session_id:
+          type: string
+        uuid:
+          type: string
+
+    AuditCloseConnection:
+      type: object
+      required:
+        - action
+        - conn_id
+      properties:
+        action:
+          type: string
+          enum: [close]
+        conn_id:
+          type: string
+
+    AuditUpdateConnection:
+      type: object
+      required:
+        - conn_id
+      properties:
+        conn_id:
+          type: string
+        session_id:
+          type: string
+        peer:
+          type: array
+          items:
+            type: string
+
+    AuditFileTransfer:
+      type: object
+      required:
+        - is_file
+      properties:
+        is_file:
+          type: boolean
+          enum: [true]
+        path:
+          type: string
+        peer_id:
+          type: string
+        id:
+          type: string
+        type:
+          type: integer
+        info:
+          type: string
+          description: JSON字符串，包含文件信息
+

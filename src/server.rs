@@ -144,7 +144,7 @@ pub fn new() -> ServerPtr {
                 )));
             }
             Err(e) => {
-                log::error!("printer service init failed: {}", e);
+                log::warn!("printer service init failed: {} (printer driver adapter DLL not found, printer service disabled)", e);
             }
         }
     }

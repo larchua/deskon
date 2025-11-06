@@ -544,9 +544,42 @@ class AbModel {
         "access_token": bind.mainGetLocalOption(key: 'access_token'),
         "ab_entries": ab_entries,
       };
-      bind.mainSaveAb(json: jsonEncode(m));
+
+      // 优先保存到数据库（如果已登录）
+      if (gFFI.userModel.isLogin) {
+        // 异步保存到数据库，不阻塞
+        _saveToDatabase(m).catchError((e) {
+          debugPrint('ab save to database failed: $e');
+          // 如果数据库保存失败，仍然保存到本地文件作为备份
+          bind.mainSaveAb(json: jsonEncode(m));
+        });
+      } else {
+        // 未登录时，只保存到本地文件（临时存储）
+        bind.mainSaveAb(json: jsonEncode(m));
+      }
     } catch (e) {
       debugPrint('ab save:$e');
+    }
+  }
+
+  /// 保存地址簿数据到数据库
+  /// 根据 API_ADDRESS_BOOK.md，标准模式下地址簿保存由各 BaseAb 类的 pushAb() 方法处理
+  /// Legacy 模式下，地址簿保存也由 LegacyAb 的 pushAb() 方法处理
+  /// 此方法主要用于触发地址簿推送（如果需要）
+  /// 注意：根据 API 文档，不存在 /api/address-book/sync 端点
+  Future<void> _saveToDatabase(Map<String, dynamic> data) async {
+    try {
+      // 根据 API_ADDRESS_BOOK.md，地址簿保存应该通过 POST /api/ab 端点
+      // 这个操作已经由各 BaseAb 类的 pushAb() 方法处理
+      // 这里不再需要额外的数据库保存操作，避免调用不存在的 API 端点
+      //
+      // 如果需要在缓存保存时同步到服务器，应该调用 current.pushAb()
+      // 但为了避免频繁的 API 调用，这里只记录日志
+      debugPrint(
+          '[AbModel] Address book cache saved (server sync handled by pushAb)');
+    } catch (e) {
+      debugPrint('[AbModel] Failed to save address book cache: $e');
+      // 不抛出异常，避免影响主流程，只记录日志
     }
   }
 

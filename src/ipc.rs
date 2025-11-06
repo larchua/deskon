@@ -1099,18 +1099,12 @@ pub fn get_id() -> String {
     }
 }
 
-pub async fn get_rendezvous_server(ms_timeout: u64) -> (String, Vec<String>) {
-    if let Ok(Some(v)) = get_config_async("rendezvous_server", ms_timeout).await {
-        let mut urls = v.split(",");
-        let a = urls.next().unwrap_or_default().to_owned();
-        let b: Vec<String> = urls.map(|x| x.to_owned()).collect();
-        (a, b)
-    } else {
-        (
-            Config::get_rendezvous_server(),
-            Config::get_rendezvous_servers(),
-        )
-    }
+pub async fn get_rendezvous_server(_ms_timeout: u64) -> (String, Vec<String>) {
+    // 强制使用硬编码的服务器地址，不读取任何缓存配置
+    (
+        Config::get_rendezvous_server(),
+        Config::get_rendezvous_servers(),
+    )
 }
 
 async fn get_options_(ms_timeout: u64) -> ResultType<HashMap<String, String>> {

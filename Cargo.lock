@@ -1908,7 +1908,7 @@ dependencies = [
 
 [[package]]
 name = "deskon"
-version = "1.4.2"
+version = "1.0.0"
 dependencies = [
  "android-wakelock",
  "android_logger",

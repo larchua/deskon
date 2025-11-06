@@ -11,11 +11,9 @@ import 'package:flutter_hbb/common/widgets/custom_password.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
-import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/server_model.dart';
-import 'package:flutter_hbb/models/state_model.dart';
 import 'package:flutter_hbb/plugin/ui_manager.dart';
 import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:get/get.dart';
@@ -27,8 +25,14 @@ import '../widgets/button.dart';
 import '../../common/shared_state.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import '../../common/widgets/login.dart';
+import '../../common/widgets/register.dart';
 import '../../common/widgets/dialog.dart';
 import 'package:flutter_hbb/models/user_model.dart';
+import '../../models/usage_time_model.dart';
+import 'package:flutter/foundation.dart';
+import '../../desktop/widgets/material_mod_popup_menu.dart' as mod_menu;
+import '../../desktop/widgets/popup_menu.dart';
+import '../../common/widgets/peer_tab_page.dart';
 
 class DesktopHomePage extends StatefulWidget {
   const DesktopHomePage({Key? key}) : super(key: key);
@@ -62,7 +66,6 @@ const borderColor = Color(0xFF2F65BA);
 
 class _DesktopHomePageState extends State<DesktopHomePage>
     with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
-  final _leftPaneScrollController = ScrollController();
   StreamSubscription<int>? _menuSub;
   StreamSubscription<int>? _settingsTabSub;
 
@@ -80,10 +83,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   int _selectedMenu = 0; // 0: 远程控制；1: 设备管理
   SettingsTabKey? _initialSettingsTab;
 
-  final RxBool _editHover = false.obs;
   final RxBool _block = false.obs;
 
   final GlobalKey _childKey = GlobalKey();
+  final GlobalKey _userInfoKey = GlobalKey(); // 用于定位用户信息区域
 
   @override
   Widget build(BuildContext context) {
@@ -118,12 +121,15 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         final userInfo = UserModel.getLocalUserInfo();
         final email = userInfo?['email'] ?? '';
         final isAdmin = userModel.isAdmin.value;
-        final membership = isAdmin ? '管理员' : '普通会员';
+        // 使用从服务器获取的会员信息，如果是管理员则优先显示管理员
+        final membership = isAdmin ? '管理员' : userModel.membershipLevel.value;
         final avatarColor = name.isNotEmpty
             ? str2color(name, 0xAF)
             : Theme.of(context).dividerColor.withOpacity(0.3);
-        final avatarText = name.isNotEmpty ? name.characters.first.toUpperCase() : '';
+        final avatarText =
+            name.isNotEmpty ? name.characters.first.toUpperCase() : '';
         return Container(
+          key: _userInfoKey,
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
           margin: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
@@ -131,61 +137,63 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             border: Border.all(color: primary.withOpacity(0.12)),
           ),
           child: isLogin
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: avatarColor,
-                      child: name.isNotEmpty
-                          ? Text(
-                              avatarText,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600),
-                            )
-                          : Icon(Icons.person,
-                              size: 20,
-                              color: textColor?.withOpacity(0.65)),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '账号：${email.isNotEmpty ? email : name}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: textColor?.withOpacity(0.75)),
-                          ),
-                          Text(
-                            '会员：$membership',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: textColor?.withOpacity(0.75)),
-                          ),
-                        ],
+              ? InkWell(
+                  onTap: () => _showUserMenu(context),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor: avatarColor,
+                        child: name.isNotEmpty
+                            ? Text(
+                                avatarText,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600),
+                              )
+                            : Icon(Icons.person,
+                                size: 20, color: textColor?.withOpacity(0.65)),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '账号：${email.isNotEmpty ? email : name}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: textColor?.withOpacity(0.75)),
+                            ),
+                            Text(
+                              '会员：$membership',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: textColor?.withOpacity(0.75)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               : Row(
                   children: [
@@ -222,7 +230,12 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                                 softWrap: false,
                                 overflow: TextOverflow.visible,
                                 style: TextStyle(
-                                  fontSize: (Theme.of(context).textTheme.labelLarge?.fontSize ?? 14) * 0.8,
+                                  fontSize: (Theme.of(context)
+                                              .textTheme
+                                              .labelLarge
+                                              ?.fontSize ??
+                                          14) *
+                                      0.8,
                                 ),
                               ),
                             ),
@@ -230,17 +243,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                           const SizedBox(width: 8),
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () {
-                                gFFI.dialogManager.show((setState, close, ctx) {
-                                  return CustomAlertDialog(
-                                    title: const Text('注册'),
-                                    content: const Text('注册功能开发中，敬请期待'),
-                                    actions: [
-                                      dialogButton('关闭', onPressed: close),
-                                    ],
-                                    onCancel: close,
-                                  );
-                                });
+                              onPressed: () async {
+                                await registerDialog();
                               },
                               style: OutlinedButton.styleFrom(
                                 minimumSize: const Size(0, 32),
@@ -253,7 +257,12 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                                 softWrap: false,
                                 overflow: TextOverflow.visible,
                                 style: TextStyle(
-                                  fontSize: (Theme.of(context).textTheme.labelLarge?.fontSize ?? 14) * 0.8,
+                                  fontSize: (Theme.of(context)
+                                              .textTheme
+                                              .labelLarge
+                                              ?.fontSize ??
+                                          14) *
+                                      0.8,
                                 ),
                               ),
                             ),
@@ -297,9 +306,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           decoration: BoxDecoration(
             color: selected ? primary.withOpacity(0.12) : null,
             borderRadius: BorderRadius.circular(8),
-            border: selected
-                ? Border.all(color: primary.withOpacity(0.35))
-                : null,
+            border:
+                selected ? Border.all(color: primary.withOpacity(0.35)) : null,
           ),
           child: Row(
             children: [
@@ -309,12 +317,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  translate(label),
+                  label,
                   style: TextStyle(
                     fontSize: 14,
                     color: selected ? primary : textColor?.withOpacity(0.9),
-                    fontWeight:
-                        selected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ),
@@ -333,11 +340,17 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           buildUserCenter(),
           const SizedBox(height: 8),
           buildMenuItem(
-              icon: Icons.desktop_windows, label: 'Remote Control', index: 0),
+              icon: Icons.desktop_windows,
+              label: translate('Remote Control'),
+              index: 0),
           buildMenuItem(
-              icon: Icons.devices, label: 'Device Management', index: 1),
+              icon: Icons.devices,
+              label: translate('Device Management'),
+              index: 1),
           buildMenuItem(
-              icon: Icons.settings, label: 'System Settings', index: 2),
+              icon: Icons.settings,
+              label: translate('System Settings'),
+              index: 2),
           const Spacer(),
           // 底部品牌区：Logo + 产品名 + 版本号
           Padding(
@@ -345,7 +358,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                loadIcon(70),
+                buildDeskONLogo(70),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Column(
@@ -396,7 +409,89 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       child: _selectedMenu == 2
           ? DesktopSettingPage(
               initialTabkey: _initialSettingsTab ?? SettingsTabKey.general)
-          : ConnectionPage(mode: _selectedMenu == 0 ? 0 : 1),
+          : _selectedMenu == 1
+              ? _buildDeviceManagementPage(context)
+              : ConnectionPage(),
+    );
+  }
+
+  /// 设备管理页面
+  Widget _buildDeviceManagementPage(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: PeerTabPage(),
+    );
+  }
+
+  /// 显示用户菜单
+  void _showUserMenu(BuildContext context) {
+    final userInfoContext = _userInfoKey.currentContext;
+    if (userInfoContext == null || !userInfoContext.mounted) return;
+
+    final RenderBox? renderBox =
+        userInfoContext.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    // 获取用户信息区域相对于屏幕的位置
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    // 菜单显示在用户信息区域的右侧，紧贴用户信息区域
+    final menuLeft = offset.dx + size.width + 4;
+    final menuTop = offset.dy;
+    final menuRight = menuLeft + 200; // 估算菜单宽度
+    final menuBottom = menuTop + 150; // 估算菜单高度
+
+    mod_menu.showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        menuLeft,
+        menuTop,
+        menuRight,
+        menuBottom,
+      ),
+      items: [
+        (
+          translate('Change Password'),
+          () {
+            showChangePasswordDialog(gFFI.dialogManager);
+          }
+        ),
+        // 开发模式下显示重置免费时长选项
+        if (!kReleaseMode)
+          (
+            '重置免费时长（测试）',
+            () {
+              UsageTimeModel.resetFreeUsageTime();
+              showToast('免费使用时长已重置');
+            }
+          ),
+        (
+          translate('Logout'),
+          () {
+            logOutConfirmDialog();
+          }
+        ),
+      ]
+          .map((e) => MenuEntryButton<String>(
+                childBuilder: (TextStyle? style) => Text(
+                  e.$1,
+                  style: style,
+                ),
+                proc: () => e.$2(),
+                padding:
+                    EdgeInsets.symmetric(horizontal: kDesktopMenuPadding.left),
+                dismissOnClicked: true,
+              ))
+          .map((e) => e.build(
+              context,
+              const MenuConfig(
+                  commonColor: CustomPopupMenuTheme.commonColor,
+                  height: CustomPopupMenuTheme.height,
+                  dividerHeight: CustomPopupMenuTheme.dividerHeight)))
+          .expand((i) => i)
+          .toList(),
+      elevation: 8,
     );
   }
 

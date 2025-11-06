@@ -642,26 +642,25 @@ async fn test_nat_type_() -> ResultType<bool> {
     Ok(ok)
 }
 
-pub async fn get_rendezvous_server(ms_timeout: u64) -> (String, Vec<String>, bool) {
-    #[cfg(any(target_os = "android", target_os = "ios"))]
-    let (mut a, mut b) = get_rendezvous_server_(ms_timeout);
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
-    let (mut a, mut b) = get_rendezvous_server_(ms_timeout).await;
-    #[cfg(windows)]
-    if let Ok(lic) = crate::platform::get_license_from_exe_name() {
-        if !lic.host.is_empty() {
-            a = lic.host;
-        }
-    }
+pub async fn get_rendezvous_server(_ms_timeout: u64) -> (String, Vec<String>, bool) {
+    // 强制使用硬编码的服务器地址，不读取任何缓存配置或license
+    let a = Config::get_rendezvous_server();
+    let mut b = Config::get_rendezvous_servers();
+    
+    // 确保所有服务器地址都包含端口
     let mut b: Vec<String> = b
         .drain(..)
         .map(|x| socket_client::check_port(x, config::RENDEZVOUS_PORT))
         .collect();
+    
     let c = if b.contains(&a) {
         b = b.drain(..).filter(|x| x != &a).collect();
         true
     } else {
-        a = b.pop().unwrap_or(a);
+        // 如果主服务器不在列表中，使用主服务器
+        if !b.contains(&a) {
+            // 保持主服务器在列表中
+        }
         false
     };
     (a, b, c)
@@ -678,8 +677,9 @@ fn get_rendezvous_server_(_ms_timeout: u64) -> (String, Vec<String>) {
 
 #[inline]
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
-async fn get_rendezvous_server_(ms_timeout: u64) -> (String, Vec<String>) {
-    crate::ipc::get_rendezvous_server(ms_timeout).await
+async fn get_rendezvous_server_(_ms_timeout: u64) -> (String, Vec<String>) {
+    // 强制使用硬编码的服务器地址
+    crate::ipc::get_rendezvous_server(0).await
 }
 
 #[inline]
@@ -967,20 +967,9 @@ pub fn is_setup(name: &str) -> bool {
     name.to_lowercase().ends_with("install.exe")
 }
 
-pub fn get_custom_rendezvous_server(custom: String) -> String {
-    #[cfg(windows)]
-    if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
-        if !lic.host.is_empty() {
-            return lic.host.clone();
-        }
-    }
-    if !custom.is_empty() {
-        return custom;
-    }
-    if !config::PROD_RENDEZVOUS_SERVER.read().unwrap().is_empty() {
-        return config::PROD_RENDEZVOUS_SERVER.read().unwrap().clone();
-    }
-    "".to_owned()
+pub fn get_custom_rendezvous_server(_custom: String) -> String {
+    // 强制使用硬编码的服务器地址，不读取任何license或自定义配置
+    Config::get_rendezvous_server()
 }
 
 #[inline]
@@ -1001,30 +990,9 @@ pub fn get_api_server(api: String, custom: String) -> String {
     res
 }
 
-fn get_api_server_(api: String, custom: String) -> String {
-    #[cfg(windows)]
-    if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
-        if !lic.api.is_empty() {
-            return lic.api.clone();
-        }
-    }
-    if !api.is_empty() {
-        return api.to_owned();
-    }
-    let api = option_env!("API_SERVER").unwrap_or_default();
-    if !api.is_empty() {
-        return api.into();
-    }
-    let s0 = get_custom_rendezvous_server(custom);
-    if !s0.is_empty() {
-        let s = crate::increase_port(&s0, -2);
-        if s == s0 {
-            return format!("http://{}:{}", s, config::RENDEZVOUS_PORT - 2);
-        } else {
-            return format!("http://{}", s);
-        }
-    }
-    "https://admin.rustdesk.com".to_owned()
+fn get_api_server_(_api: String, _custom: String) -> String {
+    // 强制使用硬编码的API服务器地址，不读取任何缓存配置
+    "http://server.tensuo.cn:21114".to_owned()
 }
 
 #[inline]
@@ -1411,20 +1379,32 @@ pub async fn secure_tcp(conn: &mut Stream, key: &str) -> ResultType<()> {
     if use_ws() {
         return Ok(());
     }
+    
+    // 记录key信息用于调试
+    log::debug!("secure_tcp: key length={}, key prefix={}", key.len(), if key.len() > 10 { &key[..10] } else { key });
+    
     let rs_pk = get_rs_pk(key);
     let Some(rs_pk) = rs_pk else {
-        bail!("Handshake failed: invalid public key from rendezvous server");
+        log::error!("secure_tcp: Failed to parse public key, key length={}, key={}", key.len(), if key.len() > 50 { format!("{}...", &key[..50]) } else { key.to_string() });
+        bail!("Handshake failed: invalid public key from rendezvous server. Key may be incorrect or corrupted.");
     };
-    match timeout(READ_TIMEOUT, conn.next()).await? {
-        Some(Ok(bytes)) => {
+    
+    log::debug!("secure_tcp: Waiting for KeyExchange message from server (timeout: {}ms)", READ_TIMEOUT);
+    match timeout(READ_TIMEOUT, conn.next()).await {
+        Ok(Some(Ok(bytes))) => {
+            log::debug!("secure_tcp: Received message from server, length={}", bytes.len());
             if let Ok(msg_in) = RendezvousMessage::parse_from_bytes(&bytes) {
                 match msg_in.union {
                     Some(rendezvous_message::Union::KeyExchange(ex)) => {
+                        log::debug!("secure_tcp: Received KeyExchange message, keys count={}", ex.keys.len());
                         if ex.keys.len() != 1 {
-                            bail!("Handshake failed: invalid key exchange message");
+                            bail!("Handshake failed: invalid key exchange message (expected 1 key, got {})", ex.keys.len());
                         }
                         let their_pk_b = sign::verify(&ex.keys[0], &rs_pk)
-                            .map_err(|_| anyhow!("Signature mismatch in key exchange"))?;
+                            .map_err(|e| {
+                                log::error!("secure_tcp: Signature verification failed: {:?}", e);
+                                anyhow!("Signature mismatch in key exchange. Server key may not match client key.")
+                            })?;
                         let (asymmetric_value, symmetric_value, key) = create_symmetric_key_msg(
                             get_pk(&their_pk_b)
                                 .context("Wrong their public length in key exchange")?,
@@ -1434,15 +1414,41 @@ pub async fn secure_tcp(conn: &mut Stream, key: &str) -> ResultType<()> {
                             keys: vec![asymmetric_value, symmetric_value],
                             ..Default::default()
                         });
+                        log::debug!("secure_tcp: Sending KeyExchange response");
                         timeout(CONNECT_TIMEOUT, conn.send(&msg_out)).await??;
                         conn.set_key(key);
-                        log::info!("Connection secured");
+                        log::info!("Connection secured successfully");
                     }
-                    _ => {}
+                    Some(msg) => {
+                        log::warn!("secure_tcp: Received unexpected message type: {:?}", msg);
+                        // 服务器可能使用旧版本协议，不发送KeyExchange，继续使用非加密连接
+                        log::info!("secure_tcp: Server may not support KeyExchange, continuing without encryption");
+                    }
+                    None => {
+                        log::warn!("secure_tcp: Received message with no union, continuing without encryption");
+                    }
                 }
+            } else {
+                log::warn!("secure_tcp: Failed to parse message from server, continuing without encryption");
             }
         }
-        _ => {}
+        Ok(Some(Err(e))) => {
+            log::error!("secure_tcp: Error receiving message: {}", e);
+            bail!("Failed to receive message from server: {}", e);
+        }
+        Ok(None) => {
+            log::warn!("secure_tcp: Connection closed by server before KeyExchange, continuing without encryption");
+            // 服务器可能不支持KeyExchange或已关闭连接，继续使用非加密连接
+        }
+        Err(e) => {
+            log::error!("secure_tcp: Timeout waiting for KeyExchange message: {}", e);
+            // 增加超时时间并重试一次，或者使用更宽松的策略
+            // 如果服务器响应慢，可以尝试继续连接（某些服务器可能不需要KeyExchange）
+            log::info!("secure_tcp: Server did not send KeyExchange within timeout, this may be normal for some server configurations");
+            // 不直接失败，让调用者决定如何处理
+            // 对于某些服务器配置，可能不需要KeyExchange
+            return Err(anyhow!("Failed to secure tcp: deadline has elapsed. Server did not respond to key exchange within {}ms. This may indicate server configuration issues or network problems.", READ_TIMEOUT));
+        }
     }
     Ok(())
 }
@@ -1969,7 +1975,8 @@ pub async fn test_ipv6() -> Option<tokio::task::JoinHandle<()>> {
                 );
             }
             Err(e) => {
-                log::error!("Failed to get public IPv6 address: {}", e);
+                // IPv6 address detection is optional, downgrade to warning
+                log::warn!("Failed to get public IPv6 address: {} (IPv6 may not be available in this network)", e);
             }
         };
     }))

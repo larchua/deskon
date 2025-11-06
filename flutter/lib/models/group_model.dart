@@ -121,6 +121,12 @@ class GroupModel {
             });
         final resp = await http.get(uri, headers: getHttpHeaders());
         _statusCode = resp.statusCode;
+
+        // 对于404错误，直接返回false，不尝试解析响应
+        if (resp.statusCode == 404) {
+          return false;
+        }
+
         Map<String, dynamic> json =
             _jsonDecodeResp(decode_http_response(resp), resp.statusCode);
         if (json.containsKey('error')) {
@@ -149,6 +155,11 @@ class GroupModel {
       } while (current * pageSize < total);
       return true;
     } catch (err) {
+      // 对于404错误，静默处理（旧服务器或配置问题可能不支持此API）
+      if (err.toString().contains('HTTP 404') || _statusCode == 404) {
+        // 静默返回false，不打印错误日志
+        return false;
+      }
       debugPrint('get accessible device groups: $err');
       // old hbbs doesn't support this api
       // groupLoadError.value =
@@ -179,6 +190,12 @@ class GroupModel {
             });
         final resp = await http.get(uri, headers: getHttpHeaders());
         _statusCode = resp.statusCode;
+
+        // 对于404错误，直接返回false，不尝试解析响应
+        if (resp.statusCode == 404) {
+          return false;
+        }
+
         Map<String, dynamic> json =
             _jsonDecodeResp(decode_http_response(resp), resp.statusCode);
         if (json.containsKey('error')) {
@@ -214,6 +231,11 @@ class GroupModel {
       } while (current * pageSize < total);
       return true;
     } catch (err) {
+      // 对于404错误，静默处理（旧服务器可能不支持此API）
+      if (err.toString().contains('HTTP 404') || _statusCode == 404) {
+        // 静默返回false，不显示错误
+        return false;
+      }
       debugPrint('get accessible users: $err');
       groupLoadError.value =
           '${translate('pull_group_failed_tip')}: ${translate(err.toString())}';
@@ -282,11 +304,30 @@ class GroupModel {
   }
 
   Map<String, dynamic> _jsonDecodeResp(String body, int statusCode) {
+    // 检查是否为HTML响应（通常是404页面）
+    final trimmedBody = body.trim();
+    if (trimmedBody.startsWith('<!DOCTYPE') ||
+        trimmedBody.startsWith('<html')) {
+      // 对于HTML响应（如404页面），返回空Map，让调用者处理
+      if (statusCode == 404) {
+        return <String, dynamic>{};
+      }
+      throw 'HTTP $statusCode, Server returned HTML page';
+    }
+
     try {
+      if (body.isEmpty) {
+        // 空响应，返回空Map
+        return <String, dynamic>{};
+      }
       Map<String, dynamic> json = jsonDecode(body);
       return json;
     } catch (e) {
       final err = body.isNotEmpty && body.length < 128 ? body : e.toString();
+      if (statusCode == 404) {
+        // 对于404错误，返回空Map而不是抛出异常，让调用者决定如何处理
+        return <String, dynamic>{};
+      }
       if (statusCode != 200) {
         throw 'HTTP $statusCode, $err';
       }

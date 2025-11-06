@@ -13,9 +13,11 @@ import '../../common/widgets/overlay.dart';
 import '../../common/widgets/remote_input.dart';
 import '../../common.dart';
 import '../../common/widgets/dialog.dart';
+import '../../common/widgets/login.dart';
 import '../../common/widgets/toolbar.dart';
 import '../../models/model.dart';
 import '../../models/platform_model.dart';
+import '../../models/usage_time_model.dart';
 import '../../common/shared_state.dart';
 import '../../utils/image.dart';
 import '../widgets/remote_toolbar.dart';
@@ -74,6 +76,7 @@ class RemotePage extends StatefulWidget {
 class _RemotePageState extends State<RemotePage>
     with AutomaticKeepAliveClientMixin, MultiWindowListener {
   Timer? _timer;
+  Timer? _usageTimeCheckTimer; // 使用时间检查定时器
   String keyboardMode = "legacy";
   bool _isWindowBlur = false;
   final _cursorOverImage = false.obs;
@@ -81,6 +84,7 @@ class _RemotePageState extends State<RemotePage>
   late RxBool _zoomCursor;
   late RxBool _remoteCursorMoved;
   late RxBool _keyboardEnabled;
+  bool _connectionEstablished = false; // 连接是否已建立
 
   var _blockableOverlayState = BlockableOverlayState();
 
@@ -116,6 +120,26 @@ class _RemotePageState extends State<RemotePage>
           _ffi.ffiModel.pi.platform, _ffi.dialogManager);
       _ffi.recordingModel
           .updateStatus(bind.sessionGetIsRecording(sessionId: _ffi.sessionId));
+
+      // 连接成功后开始追踪使用时间
+      if (!_connectionEstablished) {
+        _connectionEstablished = true;
+        // 只有未登录用户才需要追踪
+        if (!gFFI.userModel.isLogin) {
+          UsageTimeModel.startTracking();
+          // 开始实时检查使用时间（每秒检查一次）
+          _usageTimeCheckTimer =
+              Timer.periodic(const Duration(seconds: 1), (_) {
+            if (!mounted) return;
+            // 实时更新使用时间并检查是否达到限制
+            final canContinue = UsageTimeModel.updateUsageTime();
+            if (!canContinue) {
+              // 使用时间已到，中断连接
+              _handleUsageTimeLimitReached();
+            }
+          });
+        }
+      }
     });
     _ffi.start(
       widget.id,
@@ -257,7 +281,12 @@ class _RemotePageState extends State<RemotePage>
     _rawKeyFocusNode.dispose();
     await _ffi.close(closeSession: closeSession);
     _timer?.cancel();
+    _usageTimeCheckTimer?.cancel(); // 取消使用时间检查定时器
     _ffi.dialogManager.dismissAll();
+    // 停止追踪使用时间
+    if (closeSession && _connectionEstablished) {
+      UsageTimeModel.stopTracking();
+    }
     if (closeSession) {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
           overlays: SystemUiOverlay.values);
@@ -267,6 +296,67 @@ class _RemotePageState extends State<RemotePage>
     }
     await Get.delete<FFI>(tag: widget.id);
     removeSharedStates(widget.id);
+  }
+
+  /// 处理使用时间达到限制的情况
+  void _handleUsageTimeLimitReached() {
+    if (!mounted) return;
+
+    // 取消定时器
+    _usageTimeCheckTimer?.cancel();
+
+    // 停止追踪使用时间
+    UsageTimeModel.stopTracking();
+
+    // 显示提示并关闭连接
+    _ffi.dialogManager.show((setState, close, context) {
+      return CustomAlertDialog(
+        title: Text(
+          translate('Usage Limit Reached'),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 16),
+            Text(
+              '今日免费使用时间已用完。为了继续使用远程控制功能，请登录您的账户。',
+              style: TextStyle(fontSize: 14),
+            ),
+            SizedBox(height: 12),
+            Text(
+              '登录后，您将获得：\n• 无限制的远程控制时间\n• 更多高级功能\n• 更好的使用体验',
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          dialogButton(
+            translate('Login'),
+            icon: Icon(Icons.login),
+            onPressed: () async {
+              close();
+              // 关闭当前连接
+              await _ffi.close(closeSession: true);
+              // 延迟一下再显示登录对话框，确保连接已关闭
+              await Future.delayed(const Duration(milliseconds: 300));
+              // 显示登录对话框
+              final loginResult = await loginDialog();
+              if (loginResult == true) {
+                // 登录成功后重置使用时间
+                UsageTimeModel.reset();
+              }
+            },
+          ),
+        ],
+      );
+    });
+
+    // 延迟关闭连接，让用户看到提示
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _ffi.close(closeSession: true);
+    });
   }
 
   Widget emptyOverlay() => BlockableOverlay(

@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/widgets/overlay.dart';
@@ -138,6 +139,13 @@ void runMainApp(bool startService) async {
   checkUpdate();
   // trigger connection status updater
   await bind.mainCheckConnectStatus();
+
+  // 配置调试服务器地址（本地开发）
+  if (!kReleaseMode) {
+    await bind.mainSetOption(
+        key: 'api-server', value: 'http://server.tensuo.cn:21114');
+  }
+
   if (startService) {
     gFFI.serverModel.startService();
     bind.pluginSyncUi(syncTo: kAppTypeMain);

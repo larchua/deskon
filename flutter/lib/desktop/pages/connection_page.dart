@@ -2,24 +2,27 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_hbb/common/widgets/connection_page_title.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hbb/consts.dart';
-import 'package:flutter_hbb/desktop/widgets/popup_menu.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
+import 'package:flutter_hbb/models/server_model.dart';
+import 'package:flutter_hbb/desktop/pages/desktop_home_page.dart';
+import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 
 import '../../common.dart';
 import '../../common/formatter/id_formatter.dart';
-import '../../common/widgets/peer_tab_page.dart';
 import '../../common/widgets/autocomplete.dart';
 import '../../models/platform_model.dart';
-import '../../desktop/widgets/material_mod_popup_menu.dart' as mod_menu;
+import '../../common/widgets/peers_view.dart';
+import '../../models/usage_time_model.dart';
+import 'package:flutter/foundation.dart';
 
 class OnlineStatusWidget extends StatefulWidget {
   const OnlineStatusWidget({Key? key, this.onSvcStatusChanged})
@@ -200,6 +203,9 @@ class _ConnectionPageState extends State<ConnectionPage>
     with SingleTickerProviderStateMixin, WindowListener {
   /// Controller for the id input bar.
   final _idController = IDTextEditingController();
+  
+  /// 定时器用于更新剩余时长显示
+  Timer? _usageTimeUpdateTimer;
 
   final RxBool _idInputFocused = false.obs;
   final FocusNode _idFocusNode = FocusNode();
@@ -214,7 +220,8 @@ class _ConnectionPageState extends State<ConnectionPage>
   // https://github.com/flutter/flutter/issues/157244
   Iterable<Peer> _autocompleteOpts = [];
 
-  final _menuOpen = false.obs;
+  final RxBool _passwordVisible = false.obs;
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -234,11 +241,22 @@ class _ConnectionPageState extends State<ConnectionPage>
     Get.put<TextEditingController>(_idEditingController);
     Get.put<IDTextEditingController>(_idController);
     windowManager.addListener(this);
+    
+    // 定时更新剩余时长显示（仅开发版）
+    if (!kReleaseMode) {
+      _usageTimeUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() {}); // 触发UI更新
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    _usageTimeUpdateTimer?.cancel();
     _idController.dispose();
+    _passwordController.dispose();
     windowManager.removeListener(this);
     _allPeersLoader.clear();
     _idFocusNode.removeListener(onFocusChanged);
@@ -306,305 +324,677 @@ class _ConnectionPageState extends State<ConnectionPage>
     final isOutgoingOnly = bind.isOutgoingOnly();
     return Column(
       children: [
+        // 第一段: 本机信息（本机ID、临时密码、刷新、修改按钮）
+        if (!isOutgoingOnly)
+          ChangeNotifierProvider.value(
+            value: gFFI.serverModel,
+            child: Consumer<ServerModel>(
+              builder: (context, model, child) {
+                return _buildLocalDeviceInfo(context, model);
+              },
+            ),
+          ),
+        if (!isOutgoingOnly) const Divider(height: 1),
+        // 第二段: 远程控制输入框及远程控制按钮、远程文件、远程摄像头等
+        _buildRemoteControlSection(context),
+        if (!isOutgoingOnly) const Divider(height: 1),
+        // 第三段: 最近连接过的设备卡片
         Expanded(
-            child: Column(
-          children: [
-            Row(
-              children: [
-                Flexible(child: _buildRemoteIDTextField(context)),
-              ],
-            ).marginOnly(top: 22),
-            SizedBox(height: 12),
-            Divider().paddingOnly(right: 12),
-            Expanded(child: PeerTabPage()),
-          ],
-        ).paddingOnly(left: 12.0)),
+          child: _buildRecentDevicesSection(context),
+        ),
         if (!isOutgoingOnly) const Divider(height: 1),
         if (!isOutgoingOnly) OnlineStatusWidget()
       ],
     );
   }
 
+  /// 构建本机ID和临时密码显示区域（第一段）
+  Widget _buildLocalDeviceInfo(BuildContext context, ServerModel model) {
+    final showOneTime = model.approveMode != 'click' &&
+        model.verificationMethod != kUsePermanentPassword;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '本机信息',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withOpacity(0.2),
+              ),
+            ),
+            child: Row(
+              children: [
+                // 本机ID
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.computer,
+                            size: 18,
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withOpacity(0.6),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '本机ID',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.color
+                                  ?.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onDoubleTap: () {
+                                Clipboard.setData(
+                                    ClipboardData(text: model.serverId.text));
+                                showToast(translate("Copied"));
+                              },
+                              child: Text(
+                                model.serverId.text,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.color,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.copy, size: 18),
+                            onPressed: () {
+                              Clipboard.setData(
+                                  ClipboardData(text: model.serverId.text));
+                              showToast(translate("Copied"));
+                            },
+                            tooltip: translate("Copy"),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // 临时密码
+                if (showOneTime) ...[
+                  Container(
+                    width: 1,
+                    height: 60,
+                    color: Theme.of(context).dividerColor.withOpacity(0.2),
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.lock,
+                              size: 18,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.color
+                                  ?.withOpacity(0.6),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '一次性密码',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color
+                                    ?.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onDoubleTap: () {
+                                  Clipboard.setData(ClipboardData(
+                                      text: model.serverPasswd.text));
+                                  showToast(translate("Copied"));
+                                },
+                                child: Text(
+                                  model.serverPasswd.text,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.color,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.refresh, size: 18),
+                              onPressed: () =>
+                                  bind.mainUpdateTemporaryPassword(),
+                              tooltip: translate('Refresh Password'),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                            if (!bind.isDisableSettings())
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 18),
+                                onPressed: () {
+                                  DesktopHomePage.switchToSettings(
+                                      SettingsTabKey.safety);
+                                },
+                                tooltip: translate('Change Password'),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建远程控制区域（第二段）
+  Widget _buildRemoteControlSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                '控制远程桌面',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Tooltip(
+                message: translate(isWeb ? "web_id_input_tip" : "id_input_tip"),
+                child: Icon(
+                  Icons.help_outline,
+                  size: 18,
+                  color: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.color
+                      ?.withOpacity(0.5),
+                ),
+              ),
+              // 显示剩余使用时长（仅开发版）
+              if (!kReleaseMode) ...[
+                const Spacer(),
+                Obx(() {
+                  final remainingText = UsageTimeModel.getRemainingTimeDisplayText();
+                  if (remainingText == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          remainingText,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              children: [
+                // 第一行：左侧远程ID输入框和右侧密码输入框
+                Row(
+                  children: [
+                    // 左侧：远程ID输入框
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.desktop_windows,
+                                size: 18,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color
+                                    ?.withOpacity(0.6),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '远程ID',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildRemoteIDTextField(context),
+                        ],
+                      ),
+                    ),
+                    // 分隔线
+                    Container(
+                      width: 1,
+                      height: 60,
+                      color: Theme.of(context).dividerColor.withOpacity(0.2),
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    // 右侧：密码输入框
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lock,
+                                size: 18,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color
+                                    ?.withOpacity(0.6),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '验证码',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color
+                                      ?.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _passwordController,
+                            obscureText: !_passwordVisible.value,
+                            decoration: InputDecoration(
+                              hintText: '验证码（可为空）',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 16),
+                              suffixIcon: Obx(() => IconButton(
+                                    icon: Icon(
+                                      _passwordVisible.value
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      _passwordVisible.value =
+                                          !_passwordVisible.value;
+                                    },
+                                  )),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // 第二行：功能按钮组
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // 左侧：快捷连接按钮组（远程文件/远程摄像头/终端）
+                    Row(
+                      children: [
+                        Tooltip(
+                          message: translate('Transfer file'),
+                          child: IconButton(
+                            icon: const Icon(Icons.folder, size: 20),
+                            onPressed: () => onConnect(isFileTransfer: true),
+                            tooltip: translate('Transfer file'),
+                          ),
+                        ),
+                        Tooltip(
+                          message: translate('View camera'),
+                          child: IconButton(
+                            icon: const Icon(Icons.videocam, size: 20),
+                            onPressed: () => onConnect(isViewCamera: true),
+                            tooltip: translate('View camera'),
+                          ),
+                        ),
+                        Tooltip(
+                          message: '${translate('Terminal')} (beta)',
+                          child: IconButton(
+                            icon: const Icon(Icons.terminal, size: 20),
+                            onPressed: () => onConnect(isTerminal: true),
+                            tooltip: '${translate('Terminal')} (beta)',
+                          ),
+                        ),
+                      ],
+                    ),
+                    // 右侧：连接按钮和更多菜单
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            onConnect(
+                                password: _passwordController.text.isEmpty
+                                    ? null
+                                    : _passwordController.text);
+                          },
+                          child: const Text('连接'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建最近连接的设备区域（第三段）
+  Widget _buildRecentDevicesSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '最近连接',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: RecentPeersView(
+              menuPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Callback for the connect button.
   /// Connects to the selected peer.
-  void onConnect(
-      {bool isFileTransfer = false,
-      bool isViewCamera = false,
-      bool isTerminal = false}) {
+  void onConnect({
+    bool isFileTransfer = false,
+    bool isViewCamera = false,
+    bool isTerminal = false,
+    String? password,
+  }) {
     var id = _idController.id;
     connect(context, id,
         isFileTransfer: isFileTransfer,
         isViewCamera: isViewCamera,
-        isTerminal: isTerminal);
+        isTerminal: isTerminal,
+        password: password);
   }
 
   /// UI for the remote ID TextField.
   /// Search for a peer.
   Widget _buildRemoteIDTextField(BuildContext context) {
-    var w = Container(
-      width: 320 + 20 * 2,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
-      decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(13)),
-          border: Border.all(color: Theme.of(context).colorScheme.background)),
-      child: Ink(
-        child: Column(
-          children: [
-            getConnectionPageTitle(context, false).marginOnly(bottom: 15),
-            Row(
-              children: [
-                Expanded(
-                    child: RawAutocomplete<Peer>(
-                  optionsBuilder: (TextEditingValue textEditingValue) {
-                    if (textEditingValue.text == '') {
-                      _autocompleteOpts = const Iterable<Peer>.empty();
-                    } else if (_allPeersLoader.peers.isEmpty &&
-                        !_allPeersLoader.isPeersLoaded) {
-                      Peer emptyPeer = Peer(
-                        id: '',
-                        username: '',
-                        hostname: '',
-                        alias: '',
-                        platform: '',
-                        tags: [],
-                        hash: '',
-                        password: '',
-                        forceAlwaysRelay: false,
-                        rdpPort: '',
-                        rdpUsername: '',
-                        loginName: '',
-                        device_group_name: '',
-                      );
-                      _autocompleteOpts = [emptyPeer];
-                    } else {
-                      String textWithoutSpaces =
-                          textEditingValue.text.replaceAll(" ", "");
-                      if (int.tryParse(textWithoutSpaces) != null) {
-                        textEditingValue = TextEditingValue(
-                          text: textWithoutSpaces,
-                          selection: textEditingValue.selection,
-                        );
-                      }
-                      String textToFind = textEditingValue.text.toLowerCase();
-                      _autocompleteOpts = _allPeersLoader.peers
-                          .where((peer) =>
-                              peer.id.toLowerCase().contains(textToFind) ||
-                              peer.username
-                                  .toLowerCase()
-                                  .contains(textToFind) ||
-                              peer.hostname
-                                  .toLowerCase()
-                                  .contains(textToFind) ||
-                              peer.alias.toLowerCase().contains(textToFind))
-                          .toList();
-                    }
-                    return _autocompleteOpts;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 600),
+      child: RawAutocomplete<Peer>(
+        optionsBuilder: (TextEditingValue textEditingValue) {
+          if (textEditingValue.text == '') {
+            _autocompleteOpts = const Iterable<Peer>.empty();
+          } else if (_allPeersLoader.peers.isEmpty &&
+              !_allPeersLoader.isPeersLoaded) {
+            Peer emptyPeer = Peer(
+              id: '',
+              username: '',
+              hostname: '',
+              alias: '',
+              platform: '',
+              tags: [],
+              hash: '',
+              password: '',
+              forceAlwaysRelay: false,
+              rdpPort: '',
+              rdpUsername: '',
+              loginName: '',
+              device_group_name: '',
+            );
+            _autocompleteOpts = [emptyPeer];
+          } else {
+            String textWithoutSpaces =
+                textEditingValue.text.replaceAll(" ", "");
+            if (int.tryParse(textWithoutSpaces) != null) {
+              textEditingValue = TextEditingValue(
+                text: textWithoutSpaces,
+                selection: textEditingValue.selection,
+              );
+            }
+            String textToFind = textEditingValue.text.toLowerCase();
+            _autocompleteOpts = _allPeersLoader.peers
+                .where((peer) =>
+                    peer.id.toLowerCase().contains(textToFind) ||
+                    peer.username.toLowerCase().contains(textToFind) ||
+                    peer.hostname.toLowerCase().contains(textToFind) ||
+                    peer.alias.toLowerCase().contains(textToFind))
+                .toList();
+          }
+          return _autocompleteOpts;
+        },
+        focusNode: _idFocusNode,
+        textEditingController: _idEditingController,
+        fieldViewBuilder: (
+          BuildContext context,
+          TextEditingController fieldTextEditingController,
+          FocusNode fieldFocusNode,
+          VoidCallback onFieldSubmitted,
+        ) {
+          updateTextAndPreserveSelection(
+              fieldTextEditingController, _idController.text);
+          return Obx(() => SizedBox(
+                height: 56, // 确保与密码输入框高度一致
+                child: TextField(
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  keyboardType: TextInputType.visiblePassword,
+                  focusNode: fieldFocusNode,
+                  style: const TextStyle(
+                    fontFamily: 'WorkSans',
+                    fontSize: 22,
+                    height: 1.4,
+                  ),
+                  maxLines: 1,
+                  cursorColor: Theme.of(context).textTheme.titleLarge?.color,
+                  decoration: InputDecoration(
+                      filled: false,
+                      counterText: '',
+                      hintText: _idInputFocused.value
+                          ? null
+                          : translate('Enter Remote ID'),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 16)),
+                  controller: fieldTextEditingController,
+                  inputFormatters: [IDTextInputFormatter()],
+                  onChanged: (v) {
+                    _idController.id = v;
                   },
-                  focusNode: _idFocusNode,
-                  textEditingController: _idEditingController,
-                  fieldViewBuilder: (
-                    BuildContext context,
-                    TextEditingController fieldTextEditingController,
-                    FocusNode fieldFocusNode,
-                    VoidCallback onFieldSubmitted,
-                  ) {
-                    updateTextAndPreserveSelection(
-                        fieldTextEditingController, _idController.text);
-                    return Obx(() => TextField(
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          keyboardType: TextInputType.visiblePassword,
-                          focusNode: fieldFocusNode,
-                          style: const TextStyle(
-                            fontFamily: 'WorkSans',
-                            fontSize: 22,
-                            height: 1.4,
-                          ),
-                          maxLines: 1,
-                          cursorColor:
-                              Theme.of(context).textTheme.titleLarge?.color,
-                          decoration: InputDecoration(
-                              filled: false,
-                              counterText: '',
-                              hintText: _idInputFocused.value
-                                  ? null
-                                  : translate('Enter Remote ID'),
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 13)),
-                          controller: fieldTextEditingController,
-                          inputFormatters: [IDTextInputFormatter()],
-                          onChanged: (v) {
-                            _idController.id = v;
-                          },
-                          onSubmitted: (_) {
-                            onConnect();
-                          },
-                        ).workaroundFreezeLinuxMint());
+                  onSubmitted: (_) {
+                    onConnect(
+                        password: _passwordController.text.isEmpty
+                            ? null
+                            : _passwordController.text);
                   },
-                  onSelected: (option) {
-                    setState(() {
-                      _idController.id = option.id;
-                      FocusScope.of(context).unfocus();
-                    });
-                  },
-                  optionsViewBuilder: (BuildContext context,
-                      AutocompleteOnSelected<Peer> onSelected,
-                      Iterable<Peer> options) {
-                    options = _autocompleteOpts;
-                    double maxHeight = options.length * 50;
-                    if (options.length == 1) {
-                      maxHeight = 52;
-                    } else if (options.length == 3) {
-                      maxHeight = 146;
-                    } else if (options.length == 4) {
-                      maxHeight = 193;
-                    }
-                    maxHeight = maxHeight.clamp(0, 200);
+                ).workaroundFreezeLinuxMint(),
+              ));
+        },
+        onSelected: (option) {
+          setState(() {
+            _idController.id = option.id;
+            FocusScope.of(context).unfocus();
+          });
+        },
+        optionsViewBuilder: (BuildContext context,
+            AutocompleteOnSelected<Peer> onSelected, Iterable<Peer> options) {
+          options = _autocompleteOpts;
+          double maxHeight = options.length * 50;
+          if (options.length == 1) {
+            maxHeight = 52;
+          } else if (options.length == 3) {
+            maxHeight = 146;
+          } else if (options.length == 4) {
+            maxHeight = 193;
+          }
+          maxHeight = maxHeight.clamp(0, 200);
 
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: Container(
-                          decoration: BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 5,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                              borderRadius: BorderRadius.circular(5),
-                              child: Material(
-                                elevation: 4,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxHeight: maxHeight,
-                                    maxWidth: 319,
-                                  ),
-                                  child: _allPeersLoader.peers.isEmpty &&
-                                          !_allPeersLoader.isPeersLoaded
-                                      ? Container(
-                                          height: 80,
-                                          child: Center(
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          ))
-                                      : Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 5),
-                                          child: ListView(
-                                            children: options
-                                                .map((peer) =>
-                                                    AutocompletePeerTile(
-                                                        onSelect: () =>
-                                                            onSelected(peer),
-                                                        peer: peer))
-                                                .toList(),
-                                          ),
-                                        ),
-                                ),
-                              ))),
-                    );
-                  },
-                )),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 13.0),
-              child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                SizedBox(
-                  height: 28.0,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      onConnect();
-                    },
-                    child: Text(translate("Connect")),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  height: 28.0,
-                  width: 28.0,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: StatefulBuilder(
-                      builder: (context, setState) {
-                        var offset = Offset(0, 0);
-                        return Obx(() => InkWell(
-                          child: _menuOpen.value
-                              ? Transform.rotate(
-                                  angle: pi,
-                                  child: Icon(IconFont.more, size: 14),
-                                )
-                              : Icon(IconFont.more, size: 14),
-                          onTapDown: (e) {
-                            offset = e.globalPosition;
-                          },
-                          onTap: () async {
-                            _menuOpen.value = true;
-                            final x = offset.dx;
-                            final y = offset.dy;
-                          await mod_menu
-                              .showMenu(
-                            context: context,
-                            position: RelativeRect.fromLTRB(x, y, x, y),
-                            items: [
-                              (
-                                'Transfer file',
-                                () => onConnect(isFileTransfer: true)
-                              ),
-                              (
-                                'View camera',
-                                () => onConnect(isViewCamera: true)
-                              ),
-                              (
-                                '${translate('Terminal')} (beta)',
-                                () => onConnect(isTerminal: true)
-                              ),
-                            ]
-                                .map((e) => MenuEntryButton<String>(
-                                      childBuilder: (TextStyle? style) => Text(
-                                        translate(e.$1),
-                                        style: style,
-                                      ),
-                                      proc: () => e.$2(),
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: kDesktopMenuPadding.left),
-                                      dismissOnClicked: true,
-                                    ))
-                                .map((e) => e.build(
-                                    context,
-                                    const MenuConfig(
-                                        commonColor:
-                                            CustomPopupMenuTheme.commonColor,
-                                        height: CustomPopupMenuTheme.height,
-                                        dividerHeight: CustomPopupMenuTheme
-                                            .dividerHeight)))
-                                .expand((i) => i)
-                                .toList(),
-                            elevation: 8,
-                          )
-                              .then((_) {
-                            _menuOpen.value = false;
-                          });
-                        },
-                        ));
-                      },
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 5,
+                      spreadRadius: 1,
                     ),
-                  ),
+                  ],
                 ),
-              ]),
-            ),
-          ],
-        ),
+                child: ClipRRect(
+                    borderRadius: BorderRadius.circular(5),
+                    child: Material(
+                      elevation: 4,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: maxHeight,
+                          maxWidth: 319,
+                        ),
+                        child: _allPeersLoader.peers.isEmpty &&
+                                !_allPeersLoader.isPeersLoaded
+                            ? Container(
+                                height: 80,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ))
+                            : Padding(
+                                padding: const EdgeInsets.only(top: 5),
+                                child: ListView(
+                                  children: options
+                                      .map((peer) => AutocompletePeerTile(
+                                          onSelect: () => onSelected(peer),
+                                          peer: peer))
+                                      .toList(),
+                                ),
+                              ),
+                      ),
+                    ))),
+          );
+        },
       ),
     );
-    return Container(
-        constraints: const BoxConstraints(maxWidth: 600), child: w);
   }
 }

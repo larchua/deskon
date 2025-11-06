@@ -37,6 +37,8 @@ import 'desktop/pages/view_camera_page.dart' as desktop_view_camera;
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
 import 'models/model.dart';
 import 'models/platform_model.dart';
+import 'models/usage_time_model.dart';
+import 'common/widgets/dialog.dart' as dialog_widget;
 
 import 'package:flutter_hbb/native/win32.dart'
     if (dart.library.html) 'package:flutter_hbb/web/win32.dart';
@@ -2449,6 +2451,41 @@ connect(BuildContext context, String id,
     String? connToken,
     bool? isSharedPassword}) async {
   if (id == '') return;
+
+  // 检查使用时间限制（仅对远程控制连接，且仅对未登录用户）
+  if (!isFileTransfer && !isViewCamera && !isTerminal && !isTcpTunneling && !isRDP) {
+    // 检查用户登录状态（确保使用最新的状态）
+    final isUserLoggedIn = gFFI.userModel.isLogin;
+    
+    // 只有未登录用户才需要检查时间限制
+    if (!isUserLoggedIn) {
+      // 清理过期数据（每天自动清理）
+      UsageTimeModel.cleanupOldData();
+      
+      if (!UsageTimeModel.canUseRemoteControl()) {
+        // 使用时间已用完，显示登录提示
+        final shouldLogin = await dialog_widget.showUsageLimitDialog(context);
+        if (shouldLogin != true) {
+          // 用户取消登录，不继续连接
+          return;
+        }
+        // 如果用户登录成功，重新检查登录状态
+        // 登录后应该总是可以通过（不受本地时间限制）
+        if (gFFI.userModel.isLogin) {
+          // 已登录，直接允许连接，不受本地时间限制
+          debugPrint('[UsageTime] User logged in, bypassing usage time limit');
+        } else if (!UsageTimeModel.canUseRemoteControl()) {
+          // 仍然未登录且时间已用完，阻止连接
+          return;
+        }
+      }
+      // 注意：不在连接开始时追踪，而是在连接成功后（收到第一张图像）开始追踪
+      // 这样确保只有真正建立连接后才开始计时
+    } else {
+      // 已登录用户不受本地时间限制，直接允许连接（权限由服务器控制）
+      debugPrint('[UsageTime] User logged in, bypassing usage time limit check');
+    }
+  }
   if (!isDesktop || desktopType == DesktopType.main) {
     try {
       if (Get.isRegistered<IDTextEditingController>()) {
@@ -2755,7 +2792,7 @@ class ServerConfig {
       {String? idServer, String? relayServer, String? apiServer, String? key}) {
     this.idServer = idServer?.trim() ?? '47.109.178.85';
     this.relayServer = relayServer?.trim() ?? '47.109.178.85';
-    this.apiServer = apiServer?.trim() ?? 'https://47.109.178.85';
+    this.apiServer = apiServer?.trim() ?? 'http://server.tensuo.cn:21114';
     this.key = key?.trim() ?? '+J8Zh3DU5haBGQcrUnbWsjWYi7d0yhCGqYy6581EgO8=';
   }
 
@@ -2796,7 +2833,7 @@ class ServerConfig {
   ServerConfig.fromOptions(Map<String, dynamic> options)
       : idServer = options['custom-rendezvous-server'] ?? "47.109.178.85",
         relayServer = options['relay-server'] ?? "47.109.178.85",
-        apiServer = options['api-server'] ?? "https://47.109.178.85",
+        apiServer = options['api-server'] ?? "http://server.tensuo.cn:21114",
         key = options['key'] ?? "+J8Zh3DU5haBGQcrUnbWsjWYi7d0yhCGqYy6581EgO8=";
 }
 
@@ -3582,6 +3619,85 @@ Widget loadIcon(double size) {
             width: size,
             height: size,
           ));
+}
+
+/// 构建DeskON新logo
+Widget buildDeskONLogo(double size) {
+  return Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFF3B82F6), // 蓝色
+          Color(0xFF2563EB), // 深蓝色
+        ],
+      ),
+      borderRadius: BorderRadius.circular(size * 0.18),
+      boxShadow: size > 20
+          ? [
+              BoxShadow(
+                color: Color(0xFF2563EB).withOpacity(0.25),
+                blurRadius: size * 0.12,
+                spreadRadius: 0,
+              ),
+            ]
+          : null,
+    ),
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        // 外部装饰圆环（仅在较大尺寸时显示）
+        if (size > 30)
+          Container(
+            width: size * 0.75,
+            height: size * 0.75,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Colors.white.withOpacity(0.25),
+                width: max(size * 0.04, 1.0),
+              ),
+              borderRadius: BorderRadius.circular(size * 0.375),
+            ),
+          ),
+        // 中心圆点
+        Container(
+          width: size * 0.32,
+          height: size * 0.32,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(size * 0.16),
+            boxShadow: size > 30
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: size * 0.05,
+                      offset: Offset(0, size * 0.02),
+                    ),
+                  ]
+                : null,
+          ),
+        ),
+        // "D"字母设计 - 左侧竖线
+        Positioned(
+          left: size * 0.28,
+          child: Container(
+            width: max(size * 0.07, 2.0),
+            height: size * 0.48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(max(size * 0.035, 1.0)),
+                bottomLeft: Radius.circular(max(size * 0.035, 1.0)),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 var imcomingOnlyHomeSize = Size(280, 300);

@@ -16,6 +16,7 @@ import '../common/formatter/id_formatter.dart';
 import '../desktop/pages/server_page.dart' as desktop;
 import '../desktop/widgets/tabbar_widget.dart';
 import '../mobile/pages/server_page.dart';
+import '../services/device_api.dart';
 import 'model.dart';
 
 const kLoginDialogTag = "LOGIN";
@@ -50,6 +51,8 @@ class ServerModel with ChangeNotifier {
   final List<Client> _clients = [];
 
   Timer? cmHiddenTimer;
+  Timer? _heartbeatTimer; // 心跳定时器
+  bool _hasDeviceRegistered = false; // 是否已注册设备
 
   bool get isStart => _isStart;
 
@@ -151,8 +154,20 @@ class ServerModel with ChangeNotifier {
           jsonDecode(await bind.mainGetConnectStatus()) as Map<String, dynamic>;
       final statusNum = connectionStatus['status_num'] as int;
       if (statusNum != _connectStatus) {
+        final oldStatus = _connectStatus;
         _connectStatus = statusNum;
         notifyListeners();
+
+        // 连接状态变化时，启动/停止设备注册和心跳
+        if (statusNum > 0 && oldStatus == 0) {
+          // 从断开变为连接，注册设备并启动心跳
+          _registerDevice();
+          _startHeartbeat();
+        } else if (statusNum == 0 && oldStatus > 0) {
+          // 从连接变为断开，停止心跳
+          _stopHeartbeat();
+          _hasDeviceRegistered = false;
+        }
       }
 
       if (desktopType == DesktopType.cm) {
@@ -804,6 +819,47 @@ class ServerModel with ChangeNotifier {
         WakelockPlus.disable();
       }
     }
+  }
+
+  /// 注册设备到服务器
+  void _registerDevice() async {
+    // 如果已注册过，跳过（避免重复注册）
+    if (_hasDeviceRegistered) {
+      return;
+    }
+
+    try {
+      final result = await DeviceApi.registerDevice();
+      if (result != null) {
+        _hasDeviceRegistered = true;
+        debugPrint('[ServerModel] Device registered successfully');
+      }
+    } catch (e) {
+      debugPrint('[ServerModel] Device registration failed: $e');
+      // 不设置 _hasDeviceRegistered，下次连接就绪时重试
+    }
+  }
+
+  /// 启动心跳保活
+  void _startHeartbeat() {
+    _stopHeartbeat(); // 确保不重复启动
+
+    // 立即发送一次心跳包
+    DeviceApi.sendHeartbeat();
+
+    // 启动定时器，每60秒发送一次心跳（根据API文档建议）
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      DeviceApi.sendHeartbeat();
+    });
+
+    debugPrint('[ServerModel] Heartbeat started');
+  }
+
+  /// 停止心跳保活
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    debugPrint('[ServerModel] Heartbeat stopped');
   }
 }
 
